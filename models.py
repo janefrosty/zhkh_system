@@ -5,14 +5,24 @@ from flask_login import UserMixin
 
 db = SQLAlchemy()
 
+ROLE_ADMIN = 'admin'
+ROLE_OPERATOR = 'operator'
+ROLE_RESIDENT = 'resident'
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    is_admin = db.Column(db.Boolean, default=False)
-    is_active = db.Column(db.Boolean, default=True)  # Добавили is_active
+    role = db.Column(db.String(20), default=ROLE_RESIDENT)  # Изменяем is_admin на role
+    is_active = db.Column(db.Boolean, default=True)
+    full_name = db.Column(db.String(150))  # Полное имя
+    phone = db.Column(db.String(20))  # Телефон
+    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'))  # Для жильцов
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связи
+    apartment = db.relationship('Apartment', backref='users', lazy=True)  # Для жильцов
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -20,11 +30,58 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     
-    # Flask-Login требует эти методы
+    # Проверки ролей
+    @property
+    def is_admin(self):
+        return self.role == ROLE_ADMIN
+    
+    @property
+    def is_operator(self):
+        return self.role == ROLE_OPERATOR
+    
+    @property
+    def is_resident(self):
+        return self.role == ROLE_RESIDENT
+    
+    def has_permission(self, permission):
+        permissions = {
+            # Администратор - все права
+            ROLE_ADMIN: {
+                'manage_users': True,
+                'system_settings': True,
+                'manage_catalogs': True,
+                'calculate_payments': True,
+                'manage_payments': True,
+                'create_reports': True,
+                'personal_account': True,
+            },
+            # Оператор УК
+            ROLE_OPERATOR: {
+                'manage_users': False,
+                'system_settings': False,
+                'manage_catalogs': True,  # W - редактирование
+                'calculate_payments': True,  # W - редактирование
+                'manage_payments': True,  # W - редактирование
+                'create_reports': True,  # W - редактирование
+                'personal_account': False,
+            },
+            # Жилец
+            ROLE_RESIDENT: {
+                'manage_users': False,
+                'system_settings': False,
+                'manage_catalogs': False,
+                'calculate_payments': True,  # R - чтение
+                'manage_payments': True,  # R - чтение
+                'create_reports': True,  # R - чтение
+                'personal_account': True,  # W - редактирование
+            }
+        }
+        return permissions.get(self.role, {}).get(permission, False)
+    
+    # Flask-Link методы
     def get_id(self):
         return str(self.id)
     
-    # Указываем что пользователь активен
     @property
     def is_authenticated(self):
         return True

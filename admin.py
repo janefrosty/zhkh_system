@@ -1,10 +1,31 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 from models import db, User, Building, Apartment, Resident, Service, Charge, Payment, Report
+from models import ROLE_ADMIN, ROLE_OPERATOR, ROLE_RESIDENT
 from datetime import datetime, date
 from sqlalchemy import func, extract
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+# Декоратор для проверки прав администратора
+def admin_required(f):
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Доступ запрещен. Требуются права администратора.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
+
+# Декоратор для проверки прав оператора
+def operator_required(f):
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.has_permission('manage_catalogs'):
+            flash('Доступ запрещен. Требуются права оператора УК.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 # Контекстный процессор для статистики
 @admin_bp.context_processor
@@ -20,45 +41,44 @@ def inject_stats():
     }
     return {'stats': stats}
 
-@admin_bp.before_request
-@login_required
-def require_admin():
-    if not current_user.is_admin:
-        flash('Доступ запрещен. Требуются права администратора.', 'danger')
-        return redirect(url_for('index'))
-
-# Главная панель
+# Главная панель - только для администратора
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
+@admin_required
 def dashboard():
     return render_template('admin/dashboard.html')
 
-# Управление домами
+# Управление домами - только для администратора
 @admin_bp.route('/buildings')
+@admin_required
 def buildings():
     buildings_list = Building.query.all()
     return render_template('admin/buildings.html', buildings=buildings_list)
 
-# Управление квартирами
+# Управление квартирами - только для администратора
 @admin_bp.route('/apartments')
+@admin_required
 def apartments():
     apartments_list = Apartment.query.all()
     return render_template('admin/apartments.html', apartments=apartments_list)
 
-# Управление жильцами
+# Управление жильцами - только для администратора
 @admin_bp.route('/residents')
+@admin_required
 def residents():
     residents_list = Resident.query.all()
     return render_template('admin/residents.html', residents=residents_list)
 
-# Управление услугами
+# Управление услугами - администратор и оператор
 @admin_bp.route('/services')
+@operator_required
 def services():
     services_list = Service.query.all()
     return render_template('admin/services.html', services=services_list)
 
-# Создание услуги
+# Создание услуги - администратор и оператор
 @admin_bp.route('/service/create', methods=['GET', 'POST'])
+@operator_required
 def create_service():
     if request.method == 'POST':
         try:
@@ -78,14 +98,23 @@ def create_service():
             flash(f'Ошибка: {str(e)}', 'danger')
     return render_template('admin/create_service.html')
 
-# Управление начислениями
+# Управление начислениями - все пользователи (с разными правами)
 @admin_bp.route('/charges')
+@login_required
 def charges():
-    charges_list = Charge.query.order_by(Charge.period.desc()).all()
+    # Жильцы видят только свои начисления
+    if current_user.is_resident and current_user.apartment_id:
+        charges_list = Charge.query.filter_by(apartment_id=current_user.apartment_id)\
+            .order_by(Charge.period.desc()).all()
+    else:
+        # Администратор и оператор видят все
+        charges_list = Charge.query.order_by(Charge.period.desc()).all()
+    
     return render_template('admin/charges.html', charges=charges_list)
 
-# Создание начислений
+# Создание начислений - только администратор и оператор
 @admin_bp.route('/charge/create', methods=['GET', 'POST'])
+@operator_required
 def create_charge():
     if request.method == 'POST':
         try:
@@ -97,10 +126,7 @@ def create_charge():
                 flash('Выберите хотя бы одну услугу', 'danger')
                 return redirect(url_for('admin.create_charge'))
             
-            # Получаем выбранные услуги
             services = Service.query.filter(Service.id.in_(service_ids)).all()
-            
-            # Получаем квартиры
             apartment_filter = request.form.get('apartment_filter', 'all')
             
             if apartment_filter == 'building':
@@ -112,13 +138,11 @@ def create_charge():
             else:
                 apartments = Apartment.query.all()
             
-            # Создаем начисления
             created_count = 0
             period_date = date(year, month, 1)
             
             for apartment in apartments:
                 for service in services:
-                    # Проверяем, не было ли уже начисления за этот период
                     existing_charge = Charge.query.filter_by(
                         apartment_id=apartment.id,
                         service_id=service.id,
@@ -126,15 +150,12 @@ def create_charge():
                     ).first()
                     
                     if existing_charge:
-                        continue  # Пропускаем, если начисление уже есть
+                        continue
                     
-                    # Рассчитываем сумму начисления
                     if service.is_counter:
-                        # Для услуг по счетчику - нужно вводить показания
                         amount = 0
                         total = 0
                     else:
-                        # Для услуг по нормативу: тариф * площадь
                         amount = apartment.area
                         total = round(amount * service.rate, 2)
                     
@@ -159,7 +180,6 @@ def create_charge():
             db.session.rollback()
             flash(f'Ошибка при создании начислений: {str(e)}', 'danger')
     
-    # GET запрос
     services_list = Service.query.filter_by(is_active=True).all()
     buildings = Building.query.all()
     
@@ -169,14 +189,19 @@ def create_charge():
                           current_month=datetime.now().month,
                           current_year=datetime.now().year)
 
-# Управление платежами
+# Управление платежами - все пользователи (с разными правами)
 @admin_bp.route('/payments')
+@login_required
 def payments():
     status_filter = request.args.get('status', 'all')
     date_from = request.args.get('date_from')
     date_to = request.args.get('date_to')
     
     query = Payment.query
+    
+    # Жильцы видят только свои платежи
+    if current_user.is_resident and current_user.apartment_id:
+        query = query.filter_by(apartment_id=current_user.apartment_id)
     
     if status_filter != 'all':
         query = query.filter_by(status=status_filter)
@@ -197,14 +222,19 @@ def payments():
     
     payments_list = query.order_by(Payment.date.desc()).all()
     
+    # Проверяем, может ли пользователь создавать/редактировать платежи
+    can_edit = current_user.has_permission('manage_payments') and not current_user.is_resident
+    
     return render_template('admin/payments.html', 
                           payments=payments_list,
                           status_filter=status_filter,
                           date_from=date_from,
-                          date_to=date_to)
+                          date_to=date_to,
+                          can_edit=can_edit)
 
-# Обновление платежа
+# Обновление платежа - только администратор и оператор
 @admin_bp.route('/payment/<int:payment_id>/update', methods=['POST'])
+@operator_required
 def update_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     
@@ -222,8 +252,9 @@ def update_payment(payment_id):
     
     return redirect(url_for('admin.payments'))
 
-# Удаление платежа
+# Удаление платежа - только администратор и оператор
 @admin_bp.route('/payment/<int:payment_id>/delete', methods=['POST'])
+@operator_required
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     
@@ -237,8 +268,9 @@ def delete_payment(payment_id):
     
     return redirect(url_for('admin.payments'))
 
-# Создание платежа
+# Создание платежа - только администратор и оператор
 @admin_bp.route('/payment/create', methods=['GET', 'POST'])
+@operator_required
 def create_payment():
     if request.method == 'POST':
         try:
@@ -261,14 +293,30 @@ def create_payment():
     apartments = Apartment.query.all()
     return render_template('admin/create_payment.html', apartments=apartments)
 
-# Управление отчетами
+# Управление отчетами - все пользователи (с разными правами)
 @admin_bp.route('/reports')
+@login_required
 def reports():
-    reports_list = Report.query.order_by(Report.created_at.desc()).all()
-    return render_template('admin/reports.html', reports=reports_list)
+    # Жильцы видят только отчеты общего характера или свои
+    if current_user.is_resident:
+        reports_list = Report.query.filter(
+            (Report.report_type.in_(['general', 'financial'])) |
+            (Report.created_by == current_user.id)
+        ).order_by(Report.created_at.desc()).all()
+    else:
+        # Администратор и оператор видят все
+        reports_list = Report.query.order_by(Report.created_at.desc()).all()
+    
+    # Проверяем, может ли пользователь создавать отчеты
+    can_create = current_user.has_permission('create_reports') and not current_user.is_resident
+    
+    return render_template('admin/reports.html', 
+                          reports=reports_list,
+                          can_create=can_create)
 
-# Создание отчета
+# Создание отчета - только администратор и оператор
 @admin_bp.route('/report/create', methods=['GET', 'POST'])
+@operator_required
 def create_report():
     if request.method == 'POST':
         try:

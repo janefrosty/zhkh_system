@@ -43,6 +43,10 @@
         .stat-card:hover {
             transform: translateY(-5px);
         }
+        .role-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+        }
     </style>
 </head>
 <body>
@@ -54,7 +58,12 @@
             {% if current_user.is_authenticated %}
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">
-                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                    <span class="badge bg-{% if current_user.is_admin %}danger{% elif current_user.is_operator %}warning{% else %}info{% endif %} role-badge">
+                        {% if current_user.is_admin %}Админ
+                        {% elif current_user.is_operator %}Оператор
+                        {% else %}Жилец{% endif %}
+                    </span>
+                    <i class="fas fa-user me-1 ms-2"></i>{{ current_user.username }}
                 </span>
                 <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">
                     <i class="fas fa-sign-out-alt me-1"></i>Выйти
@@ -70,30 +79,88 @@
             <div class="col-md-2 p-0 sidebar">
                 <div class="p-3">
                     <h5 class="text-center mb-4">Меню</h5>
-                    <a href="{{ url_for('admin.dashboard') }}" class="mb-2 {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Панель управления
-                    </a>
-                    <a href="{{ url_for('admin.buildings') }}" class="mb-2 {% if 'buildings' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-home me-2"></i>Дома
-                    </a>
-                    <a href="{{ url_for('admin.apartments') }}" class="mb-2 {% if 'apartments' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-door-closed me-2"></i>Квартиры
-                    </a>
-                    <a href="{{ url_for('admin.residents') }}" class="mb-2 {% if 'residents' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-users me-2"></i>Жильцы
-                    </a>
-                    <a href="{{ url_for('admin.services') }}" class="mb-2 {% if 'services' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-concierge-bell me-2"></i>Услуги
-                    </a>
-                    <a href="{{ url_for('admin.charges') }}" class="mb-2 {% if 'charges' in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-calculator me-2"></i>Начисления
-                    </a>
-                    <a href="{{ url_for('admin.payments') }}" class="mb-2 {% if 'payments' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-money-bill-wave me-2"></i>Платежи
-                    </a>
-                    <a href="{{ url_for('admin.reports') }}" class="mb-2 {% if 'reports' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
-                        <i class="fas fa-chart-bar me-2"></i>Отчеты
-                    </a>
+                    
+                    {% if current_user.is_admin %}
+                        <!-- Меню администратора -->
+                        <a href="{{ url_for('admin.dashboard') }}" class="mb-2 {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                            <i class="fas fa-tachometer-alt me-2"></i>Панель управления
+                        </a>
+                        <a href="{{ url_for('admin.buildings') }}" class="mb-2 {% if 'buildings' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-home me-2"></i>Дома
+                        </a>
+                        <a href="{{ url_for('admin.apartments') }}" class="mb-2 {% if 'apartments' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-door-closed me-2"></i>Квартиры
+                        </a>
+                        <a href="{{ url_for('admin.residents') }}" class="mb-2 {% if 'residents' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-users me-2"></i>Жильцы
+                        </a>
+                        <a href="{{ url_for('admin.services') }}" class="mb-2 {% if 'services' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-concierge-bell me-2"></i>Услуги
+                        </a>
+                        <a href="{{ url_for('admin.charges') }}" class="mb-2 {% if 'charges' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-calculator me-2"></i>Начисления
+                        </a>
+                        <a href="{{ url_for('admin.payments') }}" class="mb-2 {% if 'payments' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-money-bill-wave me-2"></i>Платежи
+                        </a>
+                        <a href="{{ url_for('admin.reports') }}" class="mb-2 {% if 'reports' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-chart-bar me-2"></i>Отчеты
+                        </a>
+                    
+                    {% elif current_user.is_operator %}
+                        <!-- Меню оператора УК -->
+                        <a href="{{ url_for('operator_dashboard') }}" class="mb-2 {% if request.endpoint == 'operator_dashboard' %}active{% endif %}">
+                            <i class="fas fa-tachometer-alt me-2"></i>Панель оператора
+                        </a>
+                        
+                        {% if can_manage_catalogs %}
+                        <a href="{{ url_for('admin.services') }}" class="mb-2 {% if 'services' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-concierge-bell me-2"></i>Услуги
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_calculate_payments %}
+                        <a href="{{ url_for('admin.charges') }}" class="mb-2 {% if 'charges' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-calculator me-2"></i>Начисления
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_manage_payments %}
+                        <a href="{{ url_for('admin.payments') }}" class="mb-2 {% if 'payments' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-money-bill-wave me-2"></i>Платежи
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_create_reports %}
+                        <a href="{{ url_for('admin.reports') }}" class="mb-2 {% if 'reports' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-chart-bar me-2"></i>Отчеты
+                        </a>
+                        {% endif %}
+                    
+                    {% else %}
+                        <!-- Меню жильца -->
+                        <a href="{{ url_for('resident_dashboard') }}" class="mb-2 {% if request.endpoint == 'resident_dashboard' %}active{% endif %}">
+                            <i class="fas fa-user-circle me-2"></i>Личный кабинет
+                        </a>
+                        
+                        {% if can_calculate_payments %}
+                        <a href="{{ url_for('admin.charges') }}" class="mb-2 {% if 'charges' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-calculator me-2"></i>Мои начисления
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_manage_payments %}
+                        <a href="{{ url_for('admin.payments') }}" class="mb-2 {% if 'payments' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-money-bill-wave me-2"></i>Мои платежи
+                        </a>
+                        {% endif %}
+                        
+                        {% if can_create_reports %}
+                        <a href="{{ url_for('admin.reports') }}" class="mb-2 {% if 'reports' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-chart-bar me-2"></i>Отчеты
+                        </a>
+                        {% endif %}
+                    {% endif %}
                 </div>
             </div>
             <div class="col-md-10">

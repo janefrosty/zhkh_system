@@ -1,6 +1,7 @@
 from flask import Flask, redirect, render_template, request, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Building, Apartment, Resident, Service, Charge, Payment, Report
+from models import ROLE_ADMIN, ROLE_OPERATOR, ROLE_RESIDENT
 from admin import admin_bp
 from datetime import datetime
 import os
@@ -30,12 +31,28 @@ app.register_blueprint(admin_bp)
 # Глобальный контекстный процессор
 @app.context_processor
 def inject_global_data():
-    return {
+    data = {
         'datetime': datetime,
         'now': datetime.utcnow(),
         'current_year': datetime.utcnow().year,
-        'current_month': datetime.utcnow().month
+        'current_month': datetime.utcnow().month,
+        'ROLE_ADMIN': ROLE_ADMIN,
+        'ROLE_OPERATOR': ROLE_OPERATOR,
+        'ROLE_RESIDENT': ROLE_RESIDENT,
     }
+    
+    # Добавляем проверки прав доступа
+    if current_user.is_authenticated:
+        data.update({
+            'can_manage_users': current_user.has_permission('manage_users'),
+            'can_manage_catalogs': current_user.has_permission('manage_catalogs'),
+            'can_calculate_payments': current_user.has_permission('calculate_payments'),
+            'can_manage_payments': current_user.has_permission('manage_payments'),
+            'can_create_reports': current_user.has_permission('create_reports'),
+            'can_access_personal': current_user.has_permission('personal_account'),
+        })
+    
+    return data
 
 # Простая страница входа
 @app.route('/login', methods=['GET', 'POST'])
@@ -47,10 +64,17 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
-            if user.is_active:  # Проверяем активен ли пользователь
+            if user.is_active:
                 login_user(user, remember=True)
-                flash('Вы успешно вошли в систему!', 'success')
-                return redirect('/admin/dashboard')
+                flash(f'Добро пожаловать, {user.username}!', 'success')
+                
+                # Перенаправляем в зависимости от роли
+                if user.is_admin:
+                    return redirect('/admin/dashboard')
+                elif user.is_operator:
+                    return redirect('/operator/dashboard')
+                else:
+                    return redirect('/resident/dashboard')
             else:
                 flash('Ваш аккаунт деактивирован.', 'danger')
         else:
@@ -69,8 +93,45 @@ def logout():
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect('/admin/dashboard')
+        if current_user.is_admin:
+            return redirect('/admin/dashboard')
+        elif current_user.is_operator:
+            return redirect('/operator/dashboard')
+        else:
+            return redirect('/resident/dashboard')
     return redirect('/login')
+
+# Дашборд оператора
+@app.route('/operator/dashboard')
+@login_required
+def operator_dashboard():
+    if not current_user.is_operator:
+        flash('Доступ запрещен.', 'danger')
+        return redirect(url_for('index'))
+    
+    return render_template('operator/dashboard.html')
+
+# Личный кабинет жильца
+@app.route('/resident/dashboard')
+@login_required
+def resident_dashboard():
+    if not current_user.is_resident:
+        flash('Доступ запрещен.', 'danger')
+        return redirect(url_for('index'))
+    
+    # Получаем начисления и платежи для квартиры жильца
+    charges = []
+    payments = []
+    
+    if current_user.apartment_id:
+        charges = Charge.query.filter_by(apartment_id=current_user.apartment_id)\
+            .order_by(Charge.period.desc()).limit(10).all()
+        payments = Payment.query.filter_by(apartment_id=current_user.apartment_id)\
+            .order_by(Payment.date.desc()).limit(10).all()
+    
+    return render_template('resident/dashboard.html', 
+                          charges=charges, 
+                          payments=payments)
 
 # Инициализация базы данных
 def init_db():
@@ -88,121 +149,79 @@ def init_db():
         db.create_all()
         print('✅ Созданы таблицы базы данных')
         
-        # Проверяем, есть ли администратор
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin = User(
-                username='admin',
-                email='admin@example.com',
-                is_admin=True,
-                is_active=True  # Добавляем is_active
-            )
-            admin.set_password('admin123')
-            db.session.add(admin)
-            print('👤 Создан администратор: admin / admin123')
+        # Создаем тестовых пользователей
+        users_data = [
+            {
+                'username': 'admin',
+                'email': 'admin@example.com',
+                'password': 'admin123',
+                'role': ROLE_ADMIN,
+                'full_name': 'Администратор Системы',
+                'phone': '+7 (999) 000-00-01'
+            },
+            {
+                'username': 'operator',
+                'email': 'operator@example.com',
+                'password': 'operator123',
+                'role': ROLE_OPERATOR,
+                'full_name': 'Оператор Управляющей Компании',
+                'phone': '+7 (999) 000-00-02'
+            },
+            {
+                'username': 'ivanov',
+                'email': 'ivanov@example.com',
+                'password': 'ivanov123',
+                'role': ROLE_RESIDENT,
+                'full_name': 'Иванов Иван Иванович',
+                'phone': '+7 (999) 123-45-67'
+            },
+            {
+                'username': 'petrov',
+                'email': 'petrov@example.com',
+                'password': 'petrov123',
+                'role': ROLE_RESIDENT,
+                'full_name': 'Петров Петр Петрович',
+                'phone': '+7 (999) 765-43-21'
+            }
+        ]
         
-        # Проверяем, есть ли дома
-        if Building.query.count() == 0:
-            # Создаем тестовые данные
-            building = Building(
-                address='ул. Примерная, д. 1',
-                floors=9,
-                apartments_count=36,
-                year_built=2010
-            )
-            db.session.add(building)
-            print('🏠 Создан тестовый дом')
-            
-            # Создаем несколько квартир
-            for floor in range(1, 4):
-                for num in range(1, 4):
-                    apartment_num = f'{floor}{num:02d}'
-                    apartment = Apartment(
-                        number=apartment_num,
-                        area=65.5 if num % 2 == 0 else 45.3,
-                        rooms=3 if num % 2 == 0 else 2,
-                        floor=floor,
-                        building=building
-                    )
-                    db.session.add(apartment)
-            print(f'🏢 Создано 9 тестовых квартир')
-            
-            # Создаем жильца
-            apartment_101 = Apartment.query.filter_by(number='101').first()
-            if apartment_101:
-                resident = Resident(
-                    full_name='Иванов Иван Иванович',
-                    phone='+7 (999) 123-45-67',
-                    email='ivanov@example.com',
-                    apartment=apartment_101,
-                    is_owner=True
+        created_users = 0
+        for user_data in users_data:
+            if not User.query.filter_by(username=user_data['username']).first():
+                user = User(
+                    username=user_data['username'],
+                    email=user_data['email'],
+                    role=user_data['role'],
+                    full_name=user_data['full_name'],
+                    phone=user_data['phone'],
+                    is_active=True
                 )
-                db.session.add(resident)
-                print('👤 Создан тестовый жилец')
-            
-            # Создаем услуги
-            services_data = [
-                {
-                    'name': 'Холодное водоснабжение',
-                    'description': 'Подача холодной воды',
-                    'unit': 'м³',
-                    'rate': 45.50,
-                    'is_counter': True
-                },
-                {
-                    'name': 'Электроэнергия',
-                    'description': 'Подача электроэнергии',
-                    'unit': 'кВт·ч',
-                    'rate': 5.20,
-                    'is_counter': True
-                },
-                {
-                    'name': 'Содержание жилья',
-                    'description': 'Обслуживание общего имущества',
-                    'unit': 'м²',
-                    'rate': 25.30,
-                    'is_counter': False
-                },
-                {
-                    'name': 'Отопление',
-                    'description': 'Подача тепловой энергии',
-                    'unit': 'Гкал',
-                    'rate': 1800.00,
-                    'is_counter': False
-                },
-                {
-                    'name': 'Вывоз ТБО',
-                    'description': 'Вывоз твердых бытовых отходов',
-                    'unit': 'чел.',
-                    'rate': 120.00,
-                    'is_counter': False
-                }
-            ]
-            
-            for service_data in services_data:
-                service = Service(**service_data, is_active=True)
-                db.session.add(service)
-            
-            print(f'🔧 Создано {len(services_data)} тестовых услуг')
+                user.set_password(user_data['password'])
+                db.session.add(user)
+                created_users += 1
         
+        if created_users > 0:
+            print(f'👥 Создано {created_users} тестовых пользователей')
+            print('   👑 Администратор: admin / admin123')
+            print('   👷 Оператор УК: operator / operator123')
+            print('   👤 Жилец 1: ivanov / ivanov123')
+            print('   👤 Жилец 2: petrov / petrov123')
         try:
             db.session.commit()
             print('💾 Данные сохранены в базу данных')
             print('\n' + '='*50)
             print('🚀 Приложение готово к работе!')
             print('='*50)
-            print('\n📋 Инструкция:')
-            print('1. Откройте браузер')
-            print('2. Перейдите по адресу: http://127.0.0.1:5000/login')
-            print('3. Войдите с данными:')
-            print('   👤 Логин: admin')
-            print('   🔑 Пароль: admin123')
-            print('4. После входа вы будете перенаправлены в панель управления')
+            print('\n📋 Доступные пользователи:')
+            print('   👑 Администратор: admin / admin123')
+            print('   👷 Оператор УК: operator / operator123')
+            print('   👤 Жилец 1: ivanov / ivanov123')
+            print('   👤 Жилец 2: petrov / petrov123')
             print('='*50)
         except Exception as e:
             db.session.rollback()
             print(f'❌ Ошибка при сохранении данных: {e}')
-
+            
 # Создаем простые шаблоны если их нет
 def create_default_templates():
     templates_dir = 'templates'
