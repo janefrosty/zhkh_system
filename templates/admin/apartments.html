@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление квартирами - ЖКХ-Расчет</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+</head>
+<body>
+    {% include 'admin/_navbar.html' %}
+
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h2><i class="bi bi-door-open"></i> Управление квартирами</h2>
+                <p class="text-muted">Всего квартир: {{ apartments|length }}</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addApartmentModal">
+                    <i class="bi bi-plus-circle"></i> Добавить квартиру
+                </button>
+            </div>
+        </div>
+
+        <!-- Таблица квартир -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Дом</th>
+                                <th>Номер квартиры</th>
+                                <th>Этаж</th>
+                                <th>Площадь (м²)</th>
+                                <th>Комнат</th>
+                                <th>Жильцов</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for apartment in apartments %}
+                            <tr>
+                                <td>{{ apartment.building.address }}</td>
+                                <td><strong>{{ apartment.apartment_number }}</strong></td>
+                                <td>{{ apartment.floor }}</td>
+                                <td>{{ apartment.area }}</td>
+                                <td>{{ apartment.rooms }}</td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ apartment.residents|length or 0 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="deleteApartment({{ apartment.id }}, '{{ apartment.apartment_number }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="bi bi-door-closed" style="font-size: 3rem;"></i>
+                                    <p class="mt-2">Нет добавленных квартир</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addApartmentModal">
+                                        Добавить первую квартиру
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления квартиры -->
+    <div class="modal fade" id="addApartmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить квартиру</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addApartmentForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Дом *</label>
+                            <select name="building_id" class="form-select" required>
+                                <option value="">Выберите дом</option>
+                                {% for building in buildings %}
+                                <option value="{{ building.id }}">{{ building.address }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Номер квартиры *</label>
+                                <input type="text" name="apartment_number" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Этаж *</label>
+                                <input type="number" name="floor" class="form-control" min="1" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Площадь (м²) *</label>
+                                <input type="number" name="area" class="form-control" step="0.1" min="1" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Количество комнат *</label>
+                                <input type="number" name="rooms" class="form-control" min="1" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary">Добавить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Добавление квартиры
+        document.getElementById('addApartmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/admin/apartments/add', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Квартира добавлена');
+                    location.reload();
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            });
+        });
+
+        // Удаление квартиры
+        function deleteApartment(id, number) {
+            if (confirm(`Удалить квартиру "${number}"?`)) {
+                fetch(`/admin/apartments/${id}/delete`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Квартира удалена');
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

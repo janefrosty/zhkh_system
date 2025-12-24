@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления - ЖКХ-Расчет</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .stat-card {
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .recent-item {
+            border-left: 4px solid #0d6efd;
+            padding-left: 15px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    {% include 'admin/_navbar.html' %}
+
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2><i class="bi bi-speedometer2"></i> Панель управления</h2>
+                <p class="text-muted">Обзор системы управления ЖКХ</p>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Дома</h6>
+                                <h3>{{ total_buildings }}</h3>
+                            </div>
+                            <div>
+                                <i class="bi bi-buildings" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('admin_buildings') }}" class="text-white small">
+                            Управление домами <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Квартиры</h6>
+                                <h3>{{ total_apartments }}</h3>
+                            </div>
+                            <div>
+                                <i class="bi bi-door-closed" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('admin_apartments') }}" class="text-white small">
+                            Управление квартирами <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Жильцы</h6>
+                                <h3>{{ total_residents }}</h3>
+                            </div>
+                            <div>
+                                <i class="bi bi-people" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('admin_residents') }}" class="text-white small">
+                            Управление жильцами <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Услуги</h6>
+                                <h3>{{ total_services }}</h3>
+                            </div>
+                            <div>
+                                <i class="bi bi-tools" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('admin_services') }}" class="text-white small">
+                            Управление услугами <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Последние добавления -->
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Последние добавленные дома</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_buildings %}
+                            {% for building in recent_buildings %}
+                            <div class="recent-item">
+                                <h6>{{ building.address }}</h6>
+                                <small class="text-muted">
+                                    {{ building.total_floors }} этажей, 
+                                    {{ building.total_apartments }} квартир
+                                    <br>
+                                    Добавлен: {{ building.created_at.strftime('%d.%m.%Y') }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center">Нет добавленных домов</p>
+                        {% endif %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('admin_buildings') }}" class="btn btn-sm btn-outline-primary">
+                                Все дома
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-person-plus"></i> Последние добавленные жильцы</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_residents %}
+                            {% for resident in recent_residents %}
+                            <div class="recent-item">
+                                <h6>{{ resident.full_name }}</h6>
+                                <small class="text-muted">
+                                    {% if resident.apartment %}
+                                        Квартира: {{ resident.apartment.apartment_number }}
+                                    {% endif %}
+                                    <br>
+                                    Добавлен: {{ resident.created_at.strftime('%d.%m.%Y') }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted text-center">Нет добавленных жильцов</p>
+                        {% endif %}
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('admin_residents') }}" class="btn btn-sm btn-outline-primary">
+                                Все жильцы
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-lightning"></i> Быстрые действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <a href="{{ url_for('admin_buildings') }}" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-building-add"></i> Добавить дом
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a href="{{ url_for('admin_apartments') }}" class="btn btn-outline-success w-100">
+                                    <i class="bi bi-door-open"></i> Добавить квартиру
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a href="{{ url_for('admin_residents') }}" class="btn btn-outline-info w-100">
+                                    <i class="bi bi-person-plus"></i> Добавить жильца
+                                </a>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <a href="{{ url_for('admin_services') }}" class="btn btn-outline-warning w-100">
+                                    <i class="bi bi-plus-circle"></i> Добавить услугу
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Обновление статистики каждые 30 секунд
+        function updateStats() {
+            fetch('/api/statistics')
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelectorAll('.stat-card h3')[0].textContent = data.total_buildings;
+                    document.querySelectorAll('.stat-card h3')[1].textContent = data.total_apartments;
+                    document.querySelectorAll('.stat-card h3')[2].textContent = data.total_residents;
+                    document.querySelectorAll('.stat-card h3')[3].textContent = data.total_services;
+                });
+        }
+        
+        setInterval(updateStats, 30000);
+    </script>
+</body>
+</html>

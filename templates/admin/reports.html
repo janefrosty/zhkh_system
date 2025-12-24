@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Отчеты</h1>
+    
+    <a href="{{ url_for('admin_reports') }}" class="btn btn-primary mb-3">Создать отчет</a>
+    
+    <div class="row">
+        {% for report in reports %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ report.title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        {{ report.created_at.strftime('%d.%m.%Y') }} | {{ report.report_type }}
+                    </h6>
+                    <p class="card-text">{{ report.content[:100] }}...</p>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Автор: {{ report.author.username }}</span>
+                        <form method="POST" action="{{ url_for('admin.delete_report', id=report.id) }}" 
+                              onsubmit="return confirm('Удалить отчет?')" style="display: inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
