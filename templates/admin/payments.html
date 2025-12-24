@@ -1,245 +1,215 @@
 {% extends "base.html" %}
 
-{% block title %}Платежи{% endblock %}
+{% block title %}Платежи - Администратор{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>
-        {% if current_user.is_resident %}Мои платежи{% else %}Управление платежами{% endif %}
-    </h1>
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-cogs me-2"></i>Администрирование</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Панель управления
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin.admin_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_reports') }}">
+                        <i class="fas fa-file-alt"></i> Отчеты
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_houses') }}">
+                        <i class="fas fa-home"></i> Дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_receipts') }}">
+                        <i class="fas fa-file-invoice-dollar"></i> Квитанции
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.settings') }}">
+                        <i class="fas fa-cog"></i> Настройки
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
     
-    {% if can_edit %}
-    <a href="{{ url_for('admin.create_payment') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>Добавить платеж
-    </a>
-    {% endif %}
-</div>
-
-<!-- Фильтры (только для админов и операторов) -->
-{% if not current_user.is_resident %}
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" action="{{ url_for('admin.payments') }}" class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Статус</label>
-                <select name="status" class="form-select" onchange="this.form.submit()">
-                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все</option>
-                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Завершен</option>
-                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Ожидает</option>
-                </select>
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Управление платежами</h1>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="exportPayments()">
+                    <i class="fas fa-download me-2"></i>Экспорт
+                </button>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">С даты</label>
-                <input type="date" name="date_from" class="form-control" 
-                       value="{{ date_from or '' }}" onchange="this.form.submit()">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label">По дату</label>
-                <input type="date" name="date_to" class="form-control" 
-                       value="{{ date_to or '' }}" onchange="this.form.submit()">
-            </div>
-            <div class="col-md-1 d-flex align-items-end">
-                <a href="{{ url_for('admin.payments') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-redo"></i>
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-{% endif %}
-
-<!-- Таблица платежей -->
-<div class="card">
-    <div class="card-body">
-        {% if payments %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        {% if not current_user.is_resident %}
-                        <th>Квартира</th>
-                        {% endif %}
-                        <th>Сумма</th>
-                        <th>Дата</th>
-                        <th>Статус</th>
-                        <th>Способ оплаты</th>
-                        <th>Описание</th>
-                        {% if can_edit %}
-                        <th>Действия</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for payment in payments %}
-                    <tr>
-                        <td>#{{ payment.id }}</td>
-                        {% if not current_user.is_resident %}
-                        <td>
-                            <strong>Кв. {{ payment.apartment.number }}</strong><br>
-                            <small class="text-muted">{{ payment.apartment.building.address }}</small>
-                        </td>
-                        {% endif %}
-                        <td>
-                            <span class="badge bg-light text-dark fs-6">
-                                {{ payment.amount }} ₽
-                            </span>
-                        </td>
-                        <td>{{ payment.date.strftime('%d.%m.%Y %H:%M') }}</td>
-                        <td>
-                            <span class="badge bg-{{ 'success' if payment.status == 'completed' else 'warning' }}">
-                                {{ 'Завершен' if payment.status == 'completed' else 'Ожидает' }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if payment.payment_method == 'bank' %}
-                                <i class="fas fa-university me-1"></i>Банк
-                            {% elif payment.payment_method == 'card' %}
-                                <i class="fas fa-credit-card me-1"></i>Карта
-                            {% else %}
-                                <i class="fas fa-money-bill-wave me-1"></i>Наличные
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if payment.description %}
-                                <small>{{ payment.description[:30] }}{% if payment.description|length > 30 %}...{% endif %}</small>
-                            {% else %}
-                                <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                        {% if can_edit %}
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-primary"
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#editPayment{{ payment.id }}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger"
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#deletePayment{{ payment.id }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                        {% endif %}
-                    </tr>
-
-                    {% if can_edit %}
-                    <!-- Модальные окна редактирования и удаления -->
-                    <div class="modal fade" id="editPayment{{ payment.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <form method="POST" action="{{ url_for('admin.update_payment', payment_id=payment.id) }}">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Редактировать платеж #{{ payment.id }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label class="form-label">Сумма (₽)</label>
-                                            <input type="number" step="0.01" name="amount" 
-                                                   class="form-control" value="{{ payment.amount }}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Статус</label>
-                                            <select name="status" class="form-select">
-                                                <option value="completed" {% if payment.status == 'completed' %}selected{% endif %}>
-                                                    Завершен
-                                                </option>
-                                                <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>
-                                                    Ожидает
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Способ оплаты</label>
-                                            <select name="payment_method" class="form-select">
-                                                <option value="bank" {% if payment.payment_method == 'bank' %}selected{% endif %}>
-                                                    Банковский перевод
-                                                </option>
-                                                <option value="card" {% if payment.payment_method == 'card' %}selected{% endif %}>
-                                                    Банковская карта
-                                                </option>
-                                                <option value="cash" {% if payment.payment_method == 'cash' %}selected{% endif %}>
-                                                    Наличные
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Описание</label>
-                                            <textarea name="description" class="form-control" rows="3">{{ payment.description or '' }}</textarea>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                                        <button type="submit" class="btn btn-primary">Сохранить</button>
-                                    </div>
-                                </form>
-                            </div>
+        </div>
+        
+        <!-- Фильтры -->
+        <div class="card dashboard-card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="btn-group">
+                            <a href="?status=all" class="btn btn-outline-primary active">Все</a>
+                            <a href="?status=completed" class="btn btn-outline-success">Завершенные</a>
+                            <a href="?status=pending" class="btn btn-outline-warning">Ожидающие</a>
+                            <a href="?status=failed" class="btn btn-outline-danger">Неудачные</a>
                         </div>
                     </div>
-
-                    <div class="modal fade" id="deletePayment{{ payment.id }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Удаление платежа</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="date" class="form-control" placeholder="Дата от...">
+                            <input type="date" class="form-control" placeholder="Дата до...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Таблица платежей -->
+        <div class="card dashboard-card">
+            <div class="card-body">
+                {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Пользователь</th>
+                                    <th>Сумма</th>
+                                    <th>Дата</th>
+                                    <th>Статус</th>
+                                    <th>Описание</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>#{{ payment.id }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.users') }}" class="text-decoration-none">
+                                            {{ payment.user.username }}
+                                        </a>
+                                    </td>
+                                    <td>{{ payment.amount }} ₽</td>
+                                    <td>{{ payment.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if payment.status == 'completed' %}success{% elif payment.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                            {{ payment.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ payment.description|truncate(40) or '—' }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                                    data-bs-target="#editPaymentModal{{ payment.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Статистика -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Общая сумма</h6>
+                                    {% set total_amount = payments|sum(attribute='amount') %}
+                                    <div class="display-6 text-success">{{ total_amount|round(2) }} ₽</div>
                                 </div>
-                                <div class="modal-body">
-                                    <p>Вы уверены, что хотите удалить платеж #{{ payment.id }}?</p>
-                                    <p><strong>Квартира:</strong> {{ payment.apartment.number }}</p>
-                                    <p><strong>Сумма:</strong> {{ payment.amount }} ₽</p>
-                                    <p class="text-danger">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        Это действие нельзя отменить!
-                                    </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Завершено</h6>
+                                    {% set completed_payments = payments|selectattr('status', '==', 'completed')|list %}
+                                    <div class="display-6 text-primary">{{ completed_payments|length }}</div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                                    <form method="POST" action="{{ url_for('admin.delete_payment', payment_id=payment.id) }}">
-                                        <button type="submit" class="btn btn-danger">Удалить</button>
-                                    </form>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6>Ожидают</h6>
+                                    {% set pending_payments = payments|selectattr('status', '==', 'pending')|list %}
+                                    <div class="display-6 text-warning">{{ pending_payments|length }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        
-        {% if not current_user.is_resident %}
-        <!-- Сводка (только для админов и операторов) -->
-        <div class="mt-4 p-3 bg-light rounded">
-            <div class="row">
-                <div class="col-md-4">
-                    <h6>Всего платежей: <strong>{{ payments|length }}</strong></h6>
-                </div>
-                <div class="col-md-4">
-                    <h6>Общая сумма: <strong>{{ payments|sum(attribute='amount') }} ₽</strong></h6>
-                </div>
-                <div class="col-md-4">
-                    <h6>Завершено: <strong>{{ payments|selectattr('status', 'equalto', 'completed')|list|length }}</strong></h6>
-                </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-credit-card fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Платежи не найдены</h4>
+                    </div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
-        
-        {% else %}
-        <div class="text-center py-4">
-            <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
-            <p class="text-muted">Платежи не найдены</p>
-            {% if not current_user.is_resident %}
-            <p class="text-muted mb-3">Измените фильтры или добавьте новый платеж</p>
-            <a href="{{ url_for('admin.create_payment') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Добавить платеж
-            </a>
-            {% endif %}
-        </div>
-        {% endif %}
     </div>
 </div>
+
+<!-- Модальные окна для редактирования платежей -->
+{% for payment in payments %}
+<div class="modal fade" id="editPaymentModal{{ payment.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать платеж #{{ payment.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.update_payment', payment_id=payment.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Статус</label>
+                        <select name="status" class="form-select">
+                            <option value="pending" {% if payment.status == 'pending' %}selected{% endif %}>Ожидает</option>
+                            <option value="completed" {% if payment.status == 'completed' %}selected{% endif %}>Завершен</option>
+                            <option value="failed" {% if payment.status == 'failed' %}selected{% endif %}>Неудача</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Сумма</label>
+                        <input type="number" step="0.01" class="form-control" name="amount" value="{{ payment.amount }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="description" class="form-control" rows="3">{{ payment.description or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function exportPayments() {
+    alert('Экспорт платежей в формате CSV...');
+    // В реальном приложении здесь был бы AJAX запрос для экспорта
+}
+</script>
 {% endblock %}

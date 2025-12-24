@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Дома - Администратор{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-cogs me-2"></i>Администрирование</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Панель управления
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_reports') }}">
+                        <i class="fas fa-file-alt"></i> Отчеты
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin.admin_houses') }}">
+                        <i class="fas fa-home"></i> Дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_receipts') }}">
+                        <i class="fas fa-file-invoice-dollar"></i> Квитанции
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.settings') }}">
+                        <i class="fas fa-cog"></i> Настройки
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Управление домами</h1>
+            <a href="{{ url_for('admin.create_house') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Добавить дом
+            </a>
+        </div>
+        
+        <!-- Список домов -->
+        <div class="card dashboard-card">
+            <div class="card-body">
+                {% if houses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Адрес</th>
+                                    <th>Владелец</th>
+                                    <th>Площадь</th>
+                                    <th>Комнат</th>
+                                    <th>Жителей</th>
+                                    <th>Добавлен</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for house in houses %}
+                                <tr>
+                                    <td>#{{ house.id }}</td>
+                                    <td>
+                                        <strong>{{ house.address }}</strong>
+                                        {% if house.floor %}
+                                        <br><small class="text-muted">Этаж {{ house.floor }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if house.user %}
+                                        <a href="{{ url_for('admin.users') }}" class="text-decoration-none">
+                                            {{ house.user.username }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">Не назначен</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ house.area }} м²</td>
+                                    <td>{{ house.rooms or '-' }}</td>
+                                    <td>{{ house.residents_count or '-' }}</td>
+                                    <td>{{ house.created_at.strftime('%d.%m.%Y') if house.created_at else '' }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                                    data-bs-target="#viewHouseModal{{ house.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" 
+                                                    data-bs-target="#editHouseModal{{ house.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <form method="POST" action="{{ url_for('admin.delete_house', house_id=house.id) }}" 
+                                                  onsubmit="return confirm('Удалить дом?')" style="display: inline;">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-home fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Дома не найдены</h4>
+                        <p class="text-muted mb-4">Добавьте первый дом в систему</p>
+                        <a href="{{ url_for('admin.create_house') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Добавить дом
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальные окна для просмотра домов -->
+{% for house in houses %}
+<div class="modal fade" id="viewHouseModal{{ house.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Дом #{{ house.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Основная информация</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Адрес:</td>
+                                <td><strong>{{ house.address }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Площадь:</td>
+                                <td>{{ house.area }} м²</td>
+                            </tr>
+                            <tr>
+                                <td>Комнат:</td>
+                                <td>{{ house.rooms or 'Не указано' }}</td>
+                            </tr>
+                            <tr>
+                                <td>Этаж:</td>
+                                <td>{{ house.floor or 'Не указано' }}</td>
+                            </tr>
+                            <tr>
+                                <td>Жителей:</td>
+                                <td>{{ house.residents_count or 'Не указано' }}</td>
+                            </tr>
+                            <tr>
+                                <td>Добавлен:</td>
+                                <td>{{ house.created_at.strftime('%d.%m.%Y') if house.created_at else '' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Владелец</h6>
+                        {% if house.user %}
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Пользователь:</td>
+                                <td>{{ house.user.username }}</td>
+                            </tr>
+                            <tr>
+                                <td>Email:</td>
+                                <td>{{ house.user.email }}</td>
+                            </tr>
+                            {% if house.user.phone %}
+                            <tr>
+                                <td>Телефон:</td>
+                                <td>{{ house.user.phone }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                        {% else %}
+                        <p class="text-muted">Владелец не назначен</p>
+                        {% endif %}
+                        
+                        <h6 class="mt-3">Статистика</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Квитанций:</td>
+                                <td>{{ house.receipts|length }}</td>
+                            </tr>
+                            <tr>
+                                <td>Не оплачено:</td>
+                                <td>{{ house.receipts|selectattr('is_paid', '!=', true)|list|length }}</td>
+                            </tr>
+                            <tr>
+                                <td>Сумма долга:</td>
+                                <td>{{ house.receipts|selectattr('is_paid', '!=', true)|map(attribute='amount')|sum }} ₽</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальные окна для редактирования домов -->
+<div class="modal fade" id="editHouseModal{{ house.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать дом #{{ house.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="#">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Адрес</label>
+                        <input type="text" class="form-control" value="{{ house.address }}">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Площадь (м²)</label>
+                            <input type="number" step="0.1" class="form-control" value="{{ house.area }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Комнат</label>
+                            <input type="number" class="form-control" value="{{ house.rooms or '' }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Этаж</label>
+                            <input type="number" class="form-control" value="{{ house.floor or '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Жителей</label>
+                            <input type="number" class="form-control" value="{{ house.residents_count or '' }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Владелец</label>
+                        <select class="form-select">
+                            <option value="">Не назначен</option>
+                            {% for user in User.query.filter_by(role='user').all() %}
+                            <option value="{{ user.id }}" {% if house.user_id == user.id %}selected{% endif %}>
+                                {{ user.username }} ({{ user.email }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Задачи - Оператор{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-cog me-2"></i>Оператор</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.overdue_payments') }}">
+                        <i class="fas fa-exclamation-triangle"></i> Просрочки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('operator.tasks') }}">
+                        <i class="fas fa-tasks"></i> Задачи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Задачи</h1>
+            <div>
+                <a href="{{ url_for('operator.create_task') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Новая задача
+                </a>
+            </div>
+        </div>
+        
+        <!-- Фильтры задач -->
+        <div class="card dashboard-card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="btn-group">
+                            <a href="?status=all" class="btn btn-outline-primary active">Все</a>
+                            <a href="?status=pending" class="btn btn-outline-warning">В ожидании</a>
+                            <a href="?status=completed" class="btn btn-outline-success">Завершенные</a>
+                        </div>
+                        <div class="btn-group ms-3">
+                            <a href="?priority=all" class="btn btn-outline-secondary">Все приоритеты</a>
+                            <a href="?priority=high" class="btn btn-outline-danger">Высокий</a>
+                            <a href="?priority=medium" class="btn btn-outline-warning">Средний</a>
+                            <a href="?priority=low" class="btn btn-outline-info">Низкий</a>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Поиск задач...">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Список задач -->
+        {% if tasks %}
+            <div class="row">
+                {% for task in tasks %}
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card h-100 {% if task.status == 'completed' %}border-success{% elif task.priority == 'high' %}border-danger{% endif %}">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">{{ task.title }}</h5>
+                                <small class="text-muted">Создана: {{ task.created_at.strftime('%d.%m.%Y') }}</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                    {{ task.priority }}
+                                </span>
+                                <span class="badge bg-{% if task.status == 'completed' %}success{% else %}warning{% endif %}">
+                                    {{ task.status }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">{{ task.description }}</p>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted">Назначена:</small>
+                                <div class="d-flex align-items-center mt-1">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i>
+                                    <strong>{{ task.assigned_user.username }}</strong>
+                                </div>
+                            </div>
+                            
+                            {% if task.due_date %}
+                            <div class="mb-3">
+                                <small class="text-muted">Срок выполнения:</small>
+                                <div class="d-flex align-items-center mt-1">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    <strong>{{ task.due_date.strftime('%d.%m.%Y') }}</strong>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="d-flex justify-content-between">
+                                {% if task.status != 'completed' %}
+                                <form method="POST" action="{{ url_for('operator.complete_task', task_id=task.id) }}">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="fas fa-check me-2"></i>Завершить
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle me-2"></i>Завершена {{ task.completed_at.strftime('%d.%m.%Y') }}
+                                </span>
+                                {% endif %}
+                                
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" 
+                                        data-bs-target="#editTaskModal{{ task.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card dashboard-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-tasks fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Задачи не найдены</h4>
+                    <p class="text-muted mb-4">Создайте свою первую задачу</p>
+                    <a href="{{ url_for('operator.create_task') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Создать задачу
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Статистика задач -->
+        {% if tasks %}
+        <div class="card dashboard-card mt-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Статистика задач</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="display-6 text-primary">{{ tasks|length }}</div>
+                        <small class="text-muted">Всего задач</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        {% set pending_tasks = tasks|selectattr('status', '!=', 'completed')|list|length %}
+                        <div class="display-6 text-warning">{{ pending_tasks }}</div>
+                        <small class="text-muted">В ожидании</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        {% set completed_tasks = tasks|selectattr('status', '==', 'completed')|list|length %}
+                        <div class="display-6 text-success">{{ completed_tasks }}</div>
+                        <small class="text-muted">Завершено</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        {% set high_priority_tasks = tasks|selectattr('priority', '==', 'high')|list|length %}
+                        <div class="display-6 text-danger">{{ high_priority_tasks }}</div>
+                        <small class="text-muted">Высокий приоритет</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальные окна для редактирования задач -->
+{% for task in tasks %}
+<div class="modal fade" id="editTaskModal{{ task.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Редактировать задачу</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="#">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Название</label>
+                        <input type="text" class="form-control" value="{{ task.title }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" rows="4">{{ task.description }}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Приоритет</label>
+                            <select class="form-select">
+                                <option value="low" {% if task.priority == 'low' %}selected{% endif %}>Низкий</option>
+                                <option value="medium" {% if task.priority == 'medium' %}selected{% endif %}>Средний</option>
+                                <option value="high" {% if task.priority == 'high' %}selected{% endif %}>Высокий</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Статус</label>
+                            <select class="form-select">
+                                <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>В ожидании</option>
+                                <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>В работе</option>
+                                <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Завершена</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Срок выполнения</label>
+                        <input type="date" class="form-control" value="{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '' }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

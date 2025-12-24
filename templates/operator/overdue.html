@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Просроченные платежи - Оператор{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-cog me-2"></i>Оператор</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('operator.overdue_payments') }}">
+                        <i class="fas fa-exclamation-triangle"></i> Просрочки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.tasks') }}">
+                        <i class="fas fa-tasks"></i> Задачи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Просроченные платежи</h1>
+            <div>
+                <span class="badge bg-danger me-2">Всего: {{ overdue_receipts|length }}</span>
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Печать отчета
+                </button>
+            </div>
+        </div>
+        
+        {% if overdue_receipts %}
+            <div class="card dashboard-card mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Список просроченных платежей</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-danger" onclick="sendReminders()">
+                            <i class="fas fa-bell me-2"></i>Разослать напоминания
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr class="table-danger">
+                                    <th>#</th>
+                                    <th>Пользователь</th>
+                                    <th>Квитанция</th>
+                                    <th>Сумма</th>
+                                    <th>Просрочено дней</th>
+                                    <th>Дом</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for receipt in overdue_receipts %}
+                                {% set days_overdue = (now.date() - receipt.due_date.date()).days %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <a href="{{ url_for('operator.user_details', user_id=receipt.user.id) }}" 
+                                           class="text-decoration-none">
+                                            <strong>{{ receipt.user.username }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ receipt.user.email }}</small>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        #{{ receipt.id }}<br>
+                                        <small class="text-muted">{{ receipt.description|truncate(30) }}</small>
+                                    </td>
+                                    <td>
+                                        <strong class="text-danger">{{ receipt.amount }} ₽</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ days_overdue }} дн.</span>
+                                    </td>
+                                    <td>
+                                        {% if receipt.house %}
+                                        <small>{{ receipt.house.address }}</small>
+                                        {% else %}
+                                        <small class="text-muted">Не указан</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                                    data-bs-target="#callUserModal{{ receipt.user.id }}">
+                                                <i class="fas fa-phone"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" 
+                                                    data-bs-target="#sendReminderModal{{ receipt.id }}">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                            <a href="{{ url_for('operator.user_details', user_id=receipt.user.id) }}" 
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Сводка по просрочкам -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-chart-bar me-2"></i>Статистика просрочек</h6>
+                                    <div class="row text-center mt-3">
+                                        <div class="col-4">
+                                            <div class="display-6 text-primary">{{ overdue_receipts|length }}</div>
+                                            <small class="text-muted">Всего</small>
+                                        </div>
+                                        <div class="col-4">
+                                            {% set total_amount = overdue_receipts|sum(attribute='amount') %}
+                                            <div class="display-6 text-danger">{{ total_amount|round(2) }} ₽</div>
+                                            <small class="text-muted">Сумма долга</small>
+                                        </div>
+                                        <div class="col-4">
+                                            {% set avg_days = overdue_receipts|map(attribute='days_overdue')|sum / overdue_receipts|length if overdue_receipts else 0 %}
+                                            <div class="display-6 text-warning">{{ avg_days|round(1) }}</div>
+                                            <small class="text-muted">Ср. просрочка</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-users me-2"></i>По пользователям</h6>
+                                    {% set users_with_overdue = {} %}
+                                    {% for receipt in overdue_receipts %}
+                                        {% set _ = users_with_overdue.update({receipt.user.id: users_with_overdue.get(receipt.user.id, 0) + 1}) %}
+                                    {% endfor %}
+                                    <div class="mt-3">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Пользователей с долгами:</span>
+                                            <strong>{{ users_with_overdue|length }}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>Макс. долгов у одного:</span>
+                                            <strong>{{ users_with_overdue.values()|max if users_with_overdue else 0 }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="card dashboard-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h4 class="text-success">Нет просроченных платежей!</h4>
+                    <p class="text-muted mb-4">Все пользователи оплатили свои квитанции вовремя</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальные окна для каждого пользователя -->
+{% for receipt in overdue_receipts %}
+<div class="modal fade" id="sendReminderModal{{ receipt.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Отправить напоминание</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="#">
+                <div class="modal-body">
+                    <p>Отправить напоминание пользователю <strong>{{ receipt.user.username }}</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Тема</label>
+                        <input type="text" class="form-control" value="Просроченный платеж #{{ receipt.id }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Сообщение</label>
+                        <textarea class="form-control" rows="5">
+Уважаемый(ая) {{ receipt.user.full_name or receipt.user.username }},
+
+Напоминаем, что у вас имеется просроченный платеж по квитанции #{{ receipt.id }}.
+
+Детали:
+- Сумма: {{ receipt.amount }} ₽
+- Срок оплаты: {{ receipt.due_date.strftime('%d.%m.%Y') }}
+- Просрочено дней: {{ receipt.days_overdue }}
+- Описание: {{ receipt.description }}
+
+Пожалуйста, произведите оплату в ближайшее время.
+                        </textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-paper-plane me-2"></i>Отправить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function sendReminders() {
+    if (confirm('Разослать напоминания всем пользователям с просроченными платежами?')) {
+        alert('Напоминания отправлены всем пользователям!');
+        // В реальном приложении здесь был бы AJAX запрос
+    }
+}
+</script>
+{% endblock %}

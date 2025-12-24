@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями - Оператор{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-cog me-2"></i>Оператор</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('operator.operator_users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.overdue_payments') }}">
+                        <i class="fas fa-exclamation-triangle"></i> Просрочки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.tasks') }}">
+                        <i class="fas fa-tasks"></i> Задачи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Пользователи</h1>
+            <div class="input-group" style="width: 300px;">
+                <input type="text" class="form-control" placeholder="Поиск пользователей...">
+                <button class="btn btn-primary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="card dashboard-card">
+            <div class="card-body">
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя пользователя</th>
+                                    <th>Email</th>
+                                    <th>Телефон</th>
+                                    <th>Дома</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                {% set user_houses = user.houses|length %}
+                                {% set user_receipts = user.receipts %}
+                                {% set overdue_count = user_receipts|selectattr('is_overdue')|list|length %}
+                                
+                                <tr>
+                                    <td>#{{ user.id }}</td>
+                                    <td>
+                                        <strong>{{ user.username }}</strong>
+                                        {% if user.full_name %}
+                                        <br><small class="text-muted">{{ user.full_name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.phone or 'Не указан' }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ user_houses }}</span>
+                                    </td>
+                                    <td>
+                                        {% if overdue_count > 0 %}
+                                        <span class="badge bg-danger">{{ overdue_count }} просрочек</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Нет долгов</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('operator.user_details', user_id=user.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" 
+                                                    data-bs-target="#callModal{{ user.id }}">
+                                                <i class="fas fa-phone"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" 
+                                                    data-bs-target="#messageModal{{ user.id }}">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Модальное окно звонка -->
+                                        <div class="modal fade" id="callModal{{ user.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Звонок пользователю</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Позвонить пользователю <strong>{{ user.username }}</strong>?</p>
+                                                        {% if user.phone %}
+                                                        <p>Телефон: <strong>{{ user.phone }}</strong></p>
+                                                        {% else %}
+                                                        <p class="text-warning">Телефон не указан</p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                                        {% if user.phone %}
+                                                        <a href="tel:{{ user.phone }}" class="btn btn-success">
+                                                            <i class="fas fa-phone me-2"></i>Позвонить
+                                                        </a>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Модальное окно сообщения -->
+                                        <div class="modal fade" id="messageModal{{ user.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Сообщение пользователю</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form method="POST" action="#">
+                                                        <div class="modal-body">
+                                                            <p>Отправить сообщение пользователю <strong>{{ user.username }}</strong></p>
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Тема</label>
+                                                                <input type="text" class="form-control" value="Напоминание об оплате">
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label">Сообщение</label>
+                                                                <textarea class="form-control" rows="4">Уважаемый(ая) {{ user.full_name or user.username }}, напоминаем об оплате задолженности за коммунальные услуги.</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                                            <button type="submit" class="btn btn-primary">
+                                                                <i class="fas fa-paper-plane me-2"></i>Отправить
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Пользователи не найдены</h4>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card dashboard-card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Статистика пользователей</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="display-6 text-primary">{{ users|length }}</div>
+                                <small class="text-muted">Всего пользователей</small>
+                            </div>
+                            <div class="col-6">
+                                {% set users_with_debt = users|selectattr('receipts')|map(attribute='receipts')|map('list')|map('selectattr', 'is_overdue')|map('list')|map('length')|select('>', 0)|list|length %}
+                                <div class="display-6 text-danger">{{ users_with_debt }}</div>
+                                <small class="text-muted">С задолженностью</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

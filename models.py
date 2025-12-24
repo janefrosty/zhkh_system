@@ -1,28 +1,36 @@
-from flask_sqlalchemy import SQLAlchemy
+# models.py
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from extensions import db
 
-db = SQLAlchemy()
-
-ROLE_ADMIN = 'admin'
-ROLE_OPERATOR = 'operator'
-ROLE_RESIDENT = 'resident'
-
-class User(db.Model, UserMixin):
+class User(UserMixin, db.Model):
+    __tablename__ = 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128))
-    role = db.Column(db.String(20), default=ROLE_RESIDENT)  # Изменяем is_admin на role
-    is_active = db.Column(db.Boolean, default=True)
-    full_name = db.Column(db.String(150))  # Полное имя
-    phone = db.Column(db.String(20))  # Телефон
-    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'))  # Для жильцов
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Связи
-    apartment = db.relationship('Apartment', backref='users', lazy=True)  # Для жильцов
+    # Роли пользователей
+    role = db.Column(db.String(20), default='user')  # 'user', 'operator', 'admin'
+    
+    # Личная информация
+    full_name = db.Column(db.String(120))
+    phone = db.Column(db.String(20))
+    address = db.Column(db.Text)
+    
+    # Для обратной совместимости
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    @property
+    def is_operator(self):
+        return self.role in ['operator', 'admin']
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -30,144 +38,121 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     
-    # Проверки ролей
-    @property
-    def is_admin(self):
-        return self.role == ROLE_ADMIN
-    
-    @property
-    def is_operator(self):
-        return self.role == ROLE_OPERATOR
-    
-    @property
-    def is_resident(self):
-        return self.role == ROLE_RESIDENT
-    
-    def has_permission(self, permission):
-        permissions = {
-            # Администратор - все права
-            ROLE_ADMIN: {
-                'manage_users': True,
-                'system_settings': True,
-                'manage_catalogs': True,
-                'calculate_payments': True,
-                'manage_payments': True,
-                'create_reports': True,
-                'personal_account': True,
-            },
-            # Оператор УК
-            ROLE_OPERATOR: {
-                'manage_users': False,
-                'system_settings': False,
-                'manage_catalogs': True,  # W - редактирование
-                'calculate_payments': True,  # W - редактирование
-                'manage_payments': True,  # W - редактирование
-                'create_reports': True,  # W - редактирование
-                'personal_account': False,
-            },
-            # Жилец
-            ROLE_RESIDENT: {
-                'manage_users': False,
-                'system_settings': False,
-                'manage_catalogs': False,
-                'calculate_payments': True,  # R - чтение
-                'manage_payments': True,  # R - чтение
-                'create_reports': True,  # R - чтение
-                'personal_account': True,  # W - редактирование
-            }
-        }
-        return permissions.get(self.role, {}).get(permission, False)
-    
-    # Flask-Link методы
-    def get_id(self):
-        return str(self.id)
-    
-    @property
-    def is_authenticated(self):
-        return True
-    
-    @property
-    def is_anonymous(self):
-        return False
+    def __repr__(self):
+        return f'<User {self.username}, role: {self.role}>'
 
-class Building(db.Model):
+class House(db.Model):
+    __tablename__ = 'houses'
+    
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(200), nullable=False)
-    floors = db.Column(db.Integer, default=5)
-    apartments_count = db.Column(db.Integer, default=20)
-    year_built = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    area = db.Column(db.Float, nullable=False)  # Площадь в м²
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
-    apartments = db.relationship('Apartment', backref='building', lazy=True, cascade='all, delete-orphan')
-
-class Apartment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    number = db.Column(db.String(20), nullable=False)
-    area = db.Column(db.Float, default=50.0)
-    rooms = db.Column(db.Integer, default=2)
+    # Дополнительная информация
     floor = db.Column(db.Integer)
-    building_id = db.Column(db.Integer, db.ForeignKey('building.id'), nullable=False)
+    rooms = db.Column(db.Integer)
+    residents_count = db.Column(db.Integer)
     
-    residents = db.relationship('Resident', backref='apartment', lazy=True, cascade='all, delete-orphan')
-    charges = db.relationship('Charge', backref='apartment', lazy=True, cascade='all, delete-orphan')
-    payments = db.relationship('Payment', backref='apartment', lazy=True, cascade='all, delete-orphan')
-
-class Resident(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(150), nullable=False)
-    phone = db.Column(db.String(20))
-    email = db.Column(db.String(120))
-    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
-    is_owner = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('houses', lazy=True))
+    
+    def __repr__(self):
+        return f'<House {self.address}>'
 
-class Service(db.Model):
+class Receipt(db.Model):
+    __tablename__ = 'receipts'
+    
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    house_id = db.Column(db.Integer, db.ForeignKey('houses.id'))
+    amount = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text)
-    unit = db.Column(db.String(20))  # м³, кВт·ч, м² и т.д.
-    rate = db.Column(db.Float, default=0.0)  # Тариф за единицу
-    is_counter = db.Column(db.Boolean, default=False)  # Счетчик
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    charges = db.relationship('Charge', backref='service', lazy=True)
-
-class Charge(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    period = db.Column(db.Date, nullable=False)  # Период начисления (год-месяц)
-    amount = db.Column(db.Float, default=0.0)  # Количество/объем
-    total = db.Column(db.Float, default=0.0)  # Сумма: amount * service.rate
+    # Статус оплаты
     is_paid = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    paid_at = db.Column(db.DateTime)
     
-    # Метод для расчета суммы
-    def calculate_total(self):
-        if self.amount is not None:
-            service = Service.query.get(self.service_id)
-            if service and service.rate is not None:
-                return self.amount * service.rate
-        return 0.0
+    # Дата выставления и срок оплаты
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime, nullable=False)
+    
+    # Детали квитанции
+    period_start = db.Column(db.DateTime)  # Период начала
+    period_end = db.Column(db.DateTime)    # Период окончания
+    receipt_type = db.Column(db.String(50))  # Тип квитанции
+    
+    user = db.relationship('User', backref=db.backref('receipts', lazy=True))
+    house = db.relationship('House', backref=db.backref('receipts', lazy=True))
+    
+    @property
+    def days_overdue(self):
+        if self.is_paid:
+            return 0    
+        if not self.due_date:
+            return 0
+        from datetime import datetime
+        delta = datetime.utcnow().date() - self.due_date.date()
+        return delta.days if delta.days > 0 else 0
 
 class Payment(db.Model):
+    __tablename__ = 'payments'
+    
     id = db.Column(db.Integer, primary_key=True)
-    apartment_id = db.Column(db.Integer, db.ForeignKey('apartment.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
-    payment_method = db.Column(db.String(50), default='bank')  # bank, cash, card
-    status = db.Column(db.String(20), default='completed')  # pending, completed, failed
+    status = db.Column(db.String(20), default='pending')  # pending, completed, failed
     description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связь с квитанцией
+    receipt_id = db.Column(db.Integer, db.ForeignKey('receipts.id'))
+    
+    # Способ оплаты
+    payment_method = db.Column(db.String(50))  # card, cash, bank_transfer
+    
+    user = db.relationship('User', backref=db.backref('payments', lazy=True))
+    receipt = db.relationship('Receipt', backref=db.backref('payments', lazy=True))
+    
+    def __repr__(self):
+        return f'<Payment {self.id}, amount: {self.amount}, status: {self.status}>'
 
 class Report(db.Model):
+    __tablename__ = 'reports'
+    
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text)
-    report_type = db.Column(db.String(50))  # financial, technical, monthly, annual
-    period = db.Column(db.Date)  # Период отчета
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    report_type = db.Column(db.String(50))  # financial, technical, complaints
     
     author = db.relationship('User', backref=db.backref('reports', lazy=True))
+    
+    def __repr__(self):
+        return f'<Report {self.id}, title: {self.title}>'
+
+class Task(db.Model):
+    __tablename__ = 'tasks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    
+    # Приоритет и статус
+    priority = db.Column(db.String(20), default='medium')  # low, medium, high
+    status = db.Column(db.String(20), default='pending')   # pending, in_progress, completed
+    
+    # Назначение
+    assigned_to = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Даты
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    due_date = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    
+    assigned_user = db.relationship('User', backref=db.backref('tasks', lazy=True))
+    
+    def __repr__(self):
+        return f'<Task {self.id}, title: {self.title}, status: {self.status}>'

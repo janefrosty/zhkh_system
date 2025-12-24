@@ -44,9 +44,19 @@ def inject_stats():
 # Главная панель - только для администратора
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
-@admin_required
 def dashboard():
-    return render_template('admin/dashboard.html')
+    # Добавляем проверку здесь тоже для надежности
+    if not current_user.is_admin:
+        abort(403)
+    
+    stats = {
+        'total_users': User.query.count(),
+        'total_payments': Payment.query.count(),
+        'total_reports': Report.query.count(),
+        'pending_payments': Payment.query.filter_by(status='pending').count(),
+        'completed_payments': Payment.query.filter_by(status='completed').count(),
+    }
+    return render_template('admin/dashboard.html', stats=stats)
 
 # Управление домами - только для администратора
 @admin_bp.route('/buildings')
@@ -250,7 +260,7 @@ def update_payment(payment_id):
         db.session.rollback()
         flash(f'Ошибка при обновлении платежа: {str(e)}', 'danger')
     
-    return redirect(url_for('admin.payments'))
+    return redirect(url_for('admin.admin_payments'))
 
 # Удаление платежа - только администратор и оператор
 @admin_bp.route('/payment/<int:payment_id>/delete', methods=['POST'])
@@ -266,7 +276,7 @@ def delete_payment(payment_id):
         db.session.rollback()
         flash(f'Ошибка при удалении платежа: {str(e)}', 'danger')
     
-    return redirect(url_for('admin.payments'))
+    return redirect(url_for('admin.admin_payments'))
 
 # Создание платежа - только администратор и оператор
 @admin_bp.route('/payment/create', methods=['GET', 'POST'])
@@ -286,7 +296,7 @@ def create_payment():
             db.session.add(payment)
             db.session.commit()
             flash('Платеж успешно создан', 'success')
-            return redirect(url_for('admin.payments'))
+            return redirect(url_for('admin.admin_payments'))
         except Exception as e:
             flash(f'Ошибка при создании платежа: {str(e)}', 'danger')
     
@@ -338,8 +348,16 @@ def create_report():
             db.session.add(report)
             db.session.commit()
             flash('Отчет успешно создан', 'success')
-            return redirect(url_for('admin.reports'))
+            return redirect(url_for('admin.admin_reports'))
         except Exception as e:
             flash(f'Ошибка при создании отчета: {str(e)}', 'danger')
     
     return render_template('admin/create_report.html')
+
+@admin_bp.before_request
+@login_required
+def check_admin():
+    # Разрешаем доступ только администраторам
+    if not current_user.is_admin:
+        flash('Доступ запрещен. Требуются права администратора.', 'danger')
+        return redirect(url_for('main.index'))  # Или на страницу оператора
