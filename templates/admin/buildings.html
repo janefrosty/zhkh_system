@@ -1,273 +1,41 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Управление домами - ЖКХ-Расчет</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-    <style>
-        .action-buttons .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-    </style>
-</head>
-<body>
-    {% include 'admin/_navbar.html' %}
+{% extends "base.html" %}
 
-    <div class="container-fluid mt-4">
-        <!-- Заголовок и кнопки -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <h2><i class="bi bi-buildings"></i> Управление домами</h2>
-                <p class="text-muted">Всего домов: {{ buildings|length }}</p>
-            </div>
-            <div class="col-md-6 text-end">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBuildingModal">
-                    <i class="bi bi-plus-circle"></i> Добавить дом
-                </button>
-            </div>
-        </div>
+{% block title %}Дома{% endblock %}
 
-        <!-- Таблица домов -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Адрес</th>
-                                <th>Этажи</th>
-                                <th>Квартиры</th>
-                                <th>Год постройки</th>
-                                <th>Управляющая компания</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for building in buildings %}
-                            <tr>
-                                <td>
-                                    <strong>{{ building.address }}</strong>
-                                    <br>
-                                    <small class="text-muted">ID: {{ building.id }}</small>
-                                </td>
-                                <td>
-                                    <span class="badge bg-info">{{ building.total_floors }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ building.total_apartments }}</span>
-                                </td>
-                                <td>{{ building.year_built or '—' }}</td>
-                                <td>{{ building.management_company or '—' }}</td>
-                                <td class="action-buttons">
-                                    <button class="btn btn-sm btn-outline-primary" 
-                                            onclick="editBuilding({{ building.id }})"
-                                            title="Редактировать">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger"
-                                            onclick="deleteBuilding({{ building.id }}, '{{ building.address }}')"
-                                            title="Удалить">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                    <a href="{{ url_for('admin_apartments') }}?building={{ building.id }}"
-                                       class="btn btn-sm btn-outline-success"
-                                       title="Квартиры">
-                                        <i class="bi bi-door-open"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="6" class="text-center py-4">
-                                    <i class="bi bi-building-x" style="font-size: 3rem;"></i>
-                                    <p class="mt-2">Нет добавленных домов</p>
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBuildingModal">
-                                        Добавить первый дом
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+{% block content %}
+<h1 class="mb-4"><i class="fas fa-home me-2"></i>Дома</h1>
+
+<div class="card">
+    <div class="card-body">
+        {% if buildings %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Адрес</th>
+                        <th>Этажи</th>
+                        <th>Квартир</th>
+                        <th>Год постройки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for building in buildings %}
+                    <tr>
+                        <td>{{ building.address }}</td>
+                        <td>{{ building.floors }}</td>
+                        <td>{{ building.apartments_count }}</td>
+                        <td>{{ building.year_built or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-home fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Дома не найдены</p>
+        </div>
+        {% endif %}
     </div>
-
-    <!-- Модальное окно добавления дома -->
-    <div class="modal fade" id="addBuildingModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Добавить новый дом</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="addBuildingForm">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Адрес *</label>
-                            <input type="text" name="address" class="form-control" required>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Количество этажей *</label>
-                                <input type="number" name="total_floors" class="form-control" min="1" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Количество квартир *</label>
-                                <input type="number" name="total_apartments" class="form-control" min="1" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Год постройки</label>
-                                <input type="number" name="year_built" class="form-control" min="1900" max="2024">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Управляющая компания</label>
-                                <input type="text" name="management_company" class="form-control">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="submit" class="btn btn-primary">Добавить</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно редактирования дома -->
-    <div class="modal fade" id="editBuildingModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Редактировать дом</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="editBuildingForm">
-                    <input type="hidden" name="id" id="editBuildingId">
-                    <div class="modal-body">
-                        <!-- Форма заполнится через JS -->
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        <button type="submit" class="btn btn-primary">Сохранить</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Добавление дома
-        document.getElementById('addBuildingForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            
-            fetch('/admin/buildings/add', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Дом добавлен');
-                    location.reload();
-                } else {
-                    alert('Ошибка: ' + data.message);
-                }
-            });
-        });
-
-        // Редактирование дома
-        function editBuilding(id) {
-            fetch('/api/buildings')
-                .then(response => response.json())
-                .then(buildings => {
-                    const building = buildings.find(b => b.id === id);
-                    if (building) {
-                        document.getElementById('editBuildingId').value = building.id;
-                        const formHtml = `
-                            <div class="mb-3">
-                                <label class="form-label">Адрес *</label>
-                                <input type="text" name="address" class="form-control" 
-                                       value="${building.address}" required>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Количество этажей *</label>
-                                    <input type="number" name="total_floors" class="form-control" 
-                                           value="${building.total_floors}" min="1" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Количество квартир *</label>
-                                    <input type="number" name="total_apartments" class="form-control" 
-                                           value="${building.total_apartments}" min="1" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Год постройки</label>
-                                    <input type="number" name="year_built" class="form-control" 
-                                           value="${building.year_built || ''}" min="1900" max="2024">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Управляющая компания</label>
-                                    <input type="text" name="management_company" class="form-control" 
-                                           value="${building.management_company || ''}">
-                                </div>
-                            </div>
-                        `;
-                        document.getElementById('editBuildingForm').querySelector('.modal-body').innerHTML = formHtml;
-                        new bootstrap.Modal(document.getElementById('editBuildingModal')).show();
-                    }
-                });
-        }
-
-        // Форма редактирования
-        document.getElementById('editBuildingForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const id = formData.get('id');
-            
-            fetch(`/admin/buildings/${id}/edit`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Дом обновлен');
-                    location.reload();
-                } else {
-                    alert('Ошибка: ' + data.message);
-                }
-            });
-        });
-
-        // Удаление дома
-        function deleteBuilding(id, address) {
-            if (confirm(`Удалить дом "${address}"?`)) {
-                fetch(`/admin/buildings/${id}/delete`, {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Дом удален');
-                        location.reload();
-                    } else {
-                        alert('Ошибка: ' + data.message);
-                    }
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}

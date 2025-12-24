@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Добавление платежа{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Добавить платеж</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.create_payment') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Квартира *</label>
+                        <select name="apartment_id" class="form-select" required>
+                            <option value="">Выберите квартиру</option>
+                            {% for apartment in apartments %}
+                            <option value="{{ apartment.id }}">
+                                Кв. {{ apartment.number }} ({{ apartment.building.address }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Сумма (₽) *</label>
+                        <input type="number" step="0.01" name="amount" class="form-control" required>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Способ оплаты</label>
+                            <select name="payment_method" class="form-select">
+                                <option value="bank">Банковский перевод</option>
+                                <option value="card">Банковская карта</option>
+                                <option value="cash">Наличные</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Статус</label>
+                            <select name="status" class="form-select">
+                                <option value="completed" selected>Завершен</option>
+                                <option value="pending">Ожидает</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea name="description" class="form-control" rows="3" 
+                                    placeholder="Назначение платежа..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.payments') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Назад
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Сохранить платеж
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

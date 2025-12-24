@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Начисления{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="fas fa-calculator me-2"></i>Начисления</h1>
+    <a href="{{ url_for('admin.create_charge') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Создать начисления
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if charges %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Период</th>
+                        <th>Квартира</th>
+                        <th>Услуга</th>
+                        <th>Объем/кол-во</th>
+                        <th>Сумма</th>
+                        <th>Статус</th>
+                        <th>Дата создания</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for charge in charges %}
+                    <tr>
+                        <td>{{ charge.period.strftime('%m.%Y') }}</td>
+                        <td>Кв. {{ charge.apartment.number }}</td>
+                        <td>{{ charge.service.name }}</td>
+                        <td>{{ charge.amount }} {{ charge.service.unit }}</td>
+                        <td><strong>{{ charge.total }} ₽</strong></td>
+                        <td>
+                            {% if charge.is_paid %}
+                            <span class="badge bg-success">Оплачено</span>
+                            {% else %}
+                            <span class="badge bg-warning">Не оплачено</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ charge.created_at.strftime('%d.%m.%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-calculator fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Начисления не найдены</p>
+            <a href="{{ url_for('admin.create_charge') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Создать первое начисление
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

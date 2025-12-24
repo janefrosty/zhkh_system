@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Создание начислений{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="fas fa-calculator me-2"></i>Создать начисления</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.create_charge') }}">
+                        <!-- Шаг 1: Выбор периода -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">1. Выберите период начисления</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Месяц</label>
+                                    <select name="month" class="form-select" required>
+                                        {% for i in range(1, 13) %}
+                                        <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>
+                                            {{ ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                                                'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'][i-1] }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Год</label>
+                                    <input type="number" name="year" class="form-control" 
+                                            value="{{ current_year }}" required min="2020" max="2030">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Шаг 2: Выбор услуг -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">2. Выберите услуги для начисления</h5>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Выберите услуги, которые будут начислены в выбранный период
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th width="50">
+                                                <input type="checkbox" id="selectAllServices">
+                                            </th>
+                                            <th>Услуга</th>
+                                            <th>Тариф</th>
+                                            <th>Тип учета</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for service in services %}
+                                        <tr>
+                                            <td>
+                                                <input type="checkbox" name="service_ids" 
+                                                        value="{{ service.id }}" class="service-checkbox">
+                                            </td>
+                                            <td>
+                                                <strong>{{ service.name }}</strong>
+                                                {% if service.description %}
+                                                <br><small class="text-muted">{{ service.description }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ service.rate }} ₽ / {{ service.unit or '—' }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'info' if service.is_counter else 'warning' }}">
+                                                    {{ 'По счетчику' if service.is_counter else 'По нормативу' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Шаг 3: Выбор квартир -->
+                        <div class="mb-4">
+                            <h5 class="mb-3">3. Выберите квартиры</h5>
+                            <div class="mb-3">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="apartment_filter" 
+                                            id="filterAll" value="all" checked>
+                                    <label class="form-check-label" for="filterAll">Все квартиры</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="apartment_filter" 
+                                            id="filterBuilding" value="building">
+                                    <label class="form-check-label" for="filterBuilding">По дому</label>
+                                </div>
+                            </div>
+                            
+                            <div id="buildingSelect" class="mb-3" style="display: none;">
+                                <label class="form-label">Выберите дом</label>
+                                <select name="building_id" class="form-select">
+                                    <option value="">Выберите дом</option>
+                                    {% for building in buildings %}
+                                    <option value="{{ building.id }}">{{ building.address }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('admin.charges') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Назад
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calculator me-2"></i>Создать начисления
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Выделить все услуги
+document.getElementById('selectAllServices').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.service-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Показать/скрыть выбор дома
+document.querySelectorAll('input[name="apartment_filter"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const buildingSelect = document.getElementById('buildingSelect');
+        buildingSelect.style.display = this.value === 'building' ? 'block' : 'none';
+    });
+});
+
+// Проверка при отправке формы
+document.querySelector('form').addEventListener('submit', function(e) {
+    const checkedServices = document.querySelectorAll('.service-checkbox:checked');
+    if (checkedServices.length === 0) {
+        e.preventDefault();
+        alert('Выберите хотя бы одну услугу для начисления');
+        return false;
+    }
+});
+</script>
+{% endblock %}

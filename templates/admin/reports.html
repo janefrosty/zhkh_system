@@ -4,7 +4,7 @@
 <div class="container mt-4">
     <h1>Отчеты</h1>
     
-    <a href="{{ url_for('admin_reports') }}" class="btn btn-primary mb-3">Создать отчет</a>
+    <a href="{{ url_for('admin.reports') }}" class="btn btn-primary mb-3">Создать отчет</a>
     
     <div class="row">
         {% for report in reports %}
@@ -19,7 +19,7 @@
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Автор: {{ report.author.username }}</span>
                         <form method="POST" action="{{ url_for('admin.delete_report', id=report.id) }}" 
-                              onsubmit="return confirm('Удалить отчет?')" style="display: inline;">
+                                onsubmit="return confirm('Удалить отчет?')" style="display: inline;">
                             <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
                         </form>
                     </div>

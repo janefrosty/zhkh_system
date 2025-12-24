@@ -4,133 +4,131 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ЖКХ-Расчёт{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+        }
+        .sidebar a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: block;
+        }
+        .sidebar a:hover {
+            background-color: #3498db;
+            color: white;
+        }
+        .sidebar a.active {
+            background-color: #2980b9;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        .stat-card {
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
 </head>
 <body>
-    {% if current_user.is_authenticated %}
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <i class="fas fa-home"></i>
-            <span>ЖКХ-Расчёт</span>
-        </div>
-        
-        <div class="navbar-user">
-            <div class="user-info">
-                <i class="fas fa-user-circle"></i>
-                <div class="user-details">
-                    <span class="user-name">{{ current_user.full_name }}</span>
-                    <span class="user-role">
-                        {% if current_user.role == 'admin' %}
-                            <i class="fas fa-crown"></i> Администратор
-                        {% elif current_user.role == 'operator' %}
-                            <i class="fas fa-tools"></i> Оператор
-                        {% else %}
-                            <i class="fas fa-user"></i> Жилец
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-            <a href="{{ url_for('logout') }}" class="btn-logout">
-                <i class="fas fa-sign-out-alt"></i>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-building me-2"></i>ЖКХ-Расчёт
             </a>
+            {% if current_user.is_authenticated %}
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-user me-1"></i>{{ current_user.username }}
+                </span>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt me-1"></i>Выйти
+                </a>
+            </div>
+            {% endif %}
         </div>
     </nav>
-
-    <div class="sidebar">
-        {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Панель управления</span>
-            </a>
-            <a href="{{ url_for('admin_buildings') }}" class="sidebar-item {% if 'building' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-building"></i>
-                <span>Дома</span>
-            </a>
-            <a href="{{ url_for('admin_apartments') }}" class="sidebar-item {% if 'apartment' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-home"></i>
-                <span>Квартиры</span>
-            </a>
-            <a href="{{ url_for('admin_residents') }}" class="sidebar-item {% if 'resident' in request.endpoint and 'admin' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-users"></i>
-                <span>Жильцы</span>
-            </a>
-            <a href="{{ url_for('admin_services') }}" class="sidebar-item {% if 'service' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-tools"></i>
-                <span>Услуги</span>
-            </a>
-            <a href="{{ url_for('admin_payments') }}" class="sidebar-item {% if 'payment' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-credit-card"></i>
-                <span>Платежи</span>
-            </a>
-            <a href="{{ url_for('admin_payments') }}" class="sidebar-item {% if 'charge' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-file-invoice"></i>
-                <span>Начисления</span>
-            </a>
-            <a href="{{ url_for('admin_reports') }}" class="sidebar-item {% if 'report' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-chart-bar"></i>
-                <span>Отчеты</span>
-            </a>
-            
-        {% elif current_user.role == 'operator' %}
-            <a href="{{ url_for('operator_dashboard') }}" class="sidebar-item {% if request.endpoint == 'operator_dashboard' %}active{% endif %}">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Панель оператора</span>
-            </a>
-            <a href="{{ url_for('operator_readings') }}" class="sidebar-item {% if 'reading' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-tachometer"></i>
-                <span>Показания счетчиков</span>
-            </a>
-            <a href="{{ url_for('admin_payments') }}" class="sidebar-item">
-                <i class="fas fa-credit-card"></i>
-                <span>Платежи</span>
-            </a>
-            
-        {% else %}
-            <a href="{{ url_for('resident_dashboard') }}" class="sidebar-item {% if request.endpoint == 'resident_dashboard' %}active{% endif %}">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>Главная</span>
-            </a>
-            <a href="{{ url_for('resident_payments') }}" class="sidebar-item {% if 'payment' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-credit-card"></i>
-                <span>Мои платежи</span>
-            </a>
-            <a href="{{ url_for('resident_charges') }}" class="sidebar-item {% if 'charge' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-file-invoice"></i>
-                <span>Начисления</span>
-            </a>
-            <a href="{{ url_for('resident_readings') }}" class="sidebar-item {% if 'reading' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-tachometer"></i>
-                <span>Показания счетчиков</span>
-            </a>
-            <a href="{{ url_for('resident_profile') }}" class="sidebar-item {% if request.endpoint == 'resident_profile' %}active{% endif %}">
-                <i class="fas fa-user-cog"></i>
-                <span>Профиль</span>
-            </a>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <main class="main-content {% if not current_user.is_authenticated %}auth-page{% endif %}">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-                        {{ message }}
-                        <button class="alert-close" onclick="this.parentElement.style.display='none'">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                {% endfor %}
+    
+    <div class="container-fluid">
+        <div class="row">
+            {% if current_user.is_authenticated %}
+            <div class="col-md-2 p-0 sidebar">
+                <div class="p-3">
+                    <h5 class="text-center mb-4">Меню</h5>
+                    <a href="{{ url_for('admin.dashboard') }}" class="mb-2 {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Панель управления
+                    </a>
+                    <a href="{{ url_for('admin.buildings') }}" class="mb-2 {% if 'buildings' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-home me-2"></i>Дома
+                    </a>
+                    <a href="{{ url_for('admin.apartments') }}" class="mb-2 {% if 'apartments' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-door-closed me-2"></i>Квартиры
+                    </a>
+                    <a href="{{ url_for('admin.residents') }}" class="mb-2 {% if 'residents' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-users me-2"></i>Жильцы
+                    </a>
+                    <a href="{{ url_for('admin.services') }}" class="mb-2 {% if 'services' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-concierge-bell me-2"></i>Услуги
+                    </a>
+                    <a href="{{ url_for('admin.charges') }}" class="mb-2 {% if 'charges' in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-calculator me-2"></i>Начисления
+                    </a>
+                    <a href="{{ url_for('admin.payments') }}" class="mb-2 {% if 'payments' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-money-bill-wave me-2"></i>Платежи
+                    </a>
+                    <a href="{{ url_for('admin.reports') }}" class="mb-2 {% if 'reports' in request.endpoint and 'create' not in request.endpoint %}active{% endif %}">
+                        <i class="fas fa-chart-bar me-2"></i>Отчеты
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-10">
+            {% else %}
+            <div class="col-12">
             {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
-    </main>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+                <div class="p-4">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Автоматическое скрытие уведомлений через 5 секунд
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
 </body>
 </html>
