@@ -1,0 +1,72 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">
+            <i class="bi bi-house-gear"></i> ЖКХ-Расчет
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' }}" 
+                       href="{{ url_for('admin_dashboard') }}">
+                        <i class="bi bi-speedometer2"></i> Дашборд
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_buildings' }}" 
+                       href="{{ url_for('admin_buildings') }}">
+                        <i class="bi bi-buildings"></i> Дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_apartments' }}" 
+                       href="{{ url_for('admin_apartments') }}">
+                        <i class="bi bi-door-open"></i> Квартиры
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_residents' }}" 
+                       href="{{ url_for('admin_residents') }}">
+                        <i class="bi bi-people"></i> Жильцы
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_services' }}" 
+                       href="{{ url_for('admin_services') }}">
+                        <i class="bi bi-tools"></i> Услуги
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_payments' }}" 
+                       href="{{ url_for('admin_payments') }}">
+                        <i class="bi bi-cash-stack"></i> Платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'admin_reports' }}" 
+                       href="{{ url_for('admin_reports') }}">
+                        <i class="bi bi-graph-up"></i> Отчеты
+                    </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ current_user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text">
+                            <small>Роль: {{ current_user.role }}</small>
+                        </span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                            <i class="bi bi-box-arrow-right"></i> Выход
+                        </a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

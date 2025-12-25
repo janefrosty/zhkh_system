@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Детали пользователя - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-cog me-2"></i>Оператор</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.overdue_payments') }}">
+                        <i class="fas fa-exclamation-triangle"></i> Просрочки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.tasks') }}">
+                        <i class="fas fa-tasks"></i> Задачи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <a href="{{ url_for('operator.operator_users') }}" class="btn btn-outline-secondary btn-sm mb-2">
+                    <i class="fas fa-arrow-left me-2"></i>Назад к списку
+                </a>
+                <h1 class="h3 mb-0">Пользователь: {{ user.username }}</h1>
+                <small class="text-muted">{{ user.email }}</small>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#callModal">
+                    <i class="fas fa-phone"></i> Позвонить
+                </button>
+                <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#messageModal">
+                    <i class="fas fa-envelope"></i> Написать
+                </button>
+            </div>
+        </div>
+        
+        <!-- Информация о пользователе -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>Информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        </div>
+                        
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Имя:</span>
+                                <strong>{{ user.full_name or 'Не указано' }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Email:</span>
+                                <strong>{{ user.email }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Телефон:</span>
+                                <strong>{{ user.phone or 'Не указан' }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Адрес:</span>
+                                <strong>{{ user.address or 'Не указан' }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Дата регистрации:</span>
+                                <strong>{{ user.created_at.strftime('%d.%m.%Y') }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Статистика</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <div class="display-4 text-primary">{{ stats.total_payments }}</div>
+                            <small class="text-muted">Всего платежей</small>
+                        </div>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <div class="display-6 text-success">{{ stats.total_payments - stats.unpaid_receipts }}</div>
+                                <small class="text-muted">Оплачено</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="display-6 text-danger">{{ stats.unpaid_receipts }}</div>
+                                <small class="text-muted">Не оплачено</small>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="display-5 text-warning">{{ stats.total_debt|round(2) }} ₽</div>
+                            <small class="text-muted">Общая задолженность</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card dashboard-card h-100">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-home me-2"></i>Дома</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if houses %}
+                            <div class="list-group list-group-flush">
+                                {% for house in houses %}
+                                <div class="list-group-item border-0 px-0 mb-2">
+                                    <h6 class="mb-1">{{ house.address }}</h6>
+                                    <div class="small text-muted d-flex justify-content-between">
+                                        <span>{{ house.area }} м²</span>
+                                        <span>{{ house.rooms }} комн.</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">Дома не найдены</p>
+                        {% endif %}
+                        <div class="text-center mt-3">
+                            <span class="badge bg-info">Всего: {{ houses|length }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Квитанции пользователя -->
+        <div class="card dashboard-card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Квитанции</h5>
+                <span class="badge bg-{% if stats.unpaid_receipts > 0 %}danger{% else %}success{% endif %}">
+                    {{ stats.unpaid_receipts }} не оплачено
+                </span>
+            </div>
+            <div class="card-body">
+                {% if receipts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Сумма</th>
+                                    <th>Описание</th>
+                                    <th>Срок оплаты</th>
+                                    <th>Статус</th>
+                                    <th>Дом</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for receipt in receipts %}
+                                <tr class="{% if receipt.is_overdue %}table-danger{% elif not receipt.is_paid %}table-warning{% endif %}">
+                                    <td>#{{ receipt.id }}</td>
+                                    <td>{{ receipt.amount }} ₽</td>
+                                    <td>{{ receipt.description|truncate(40) }}</td>
+                                    <td>{{ receipt.due_date.strftime('%d.%m.%Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if receipt.is_paid %}success{% elif receipt.is_overdue %}danger{% else %}warning{% endif %}">
+                                            {% if receipt.is_paid %}Оплачено{% elif receipt.is_overdue %}Просрочено{% else %}Ожидает{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if receipt.house %}
+                                        <small>{{ receipt.house.address }}</small>
+                                        {% else %}
+                                        <small class="text-muted">Не указан</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">Квитанции не найдены</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Платежи пользователя -->
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>История платежей</h5>
+            </div>
+            <div class="card-body">
+                {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                    <th>Описание</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.date.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>{{ payment.amount }} ₽</td>
+                                    <td>
+                                        <span class="badge bg-{% if payment.status == 'completed' %}success{% elif payment.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                            {{ payment.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ payment.description or '—' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">Платежи не найдены</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальные окна -->
+<div class="modal fade" id="callModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Звонок пользователю</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Позвонить пользователю <strong>{{ user.username }}</strong>?</p>
+                {% if user.phone %}
+                <p>Телефон: <strong>{{ user.phone }}</strong></p>
+                {% else %}
+                <p class="text-warning">Телефон не указан</p>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                {% if user.phone %}
+                <a href="tel:{{ user.phone }}" class="btn btn-success">
+                    <i class="fas fa-phone me-2"></i>Позвонить
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="messageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Сообщение пользователю</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="#">
+                <div class="modal-body">
+                    <p>Отправить сообщение пользователю <strong>{{ user.username }}</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Тема</label>
+                        <input type="text" class="form-control" value="Напоминание об оплате">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Сообщение</label>
+                        <textarea class="form-control" rows="4">Уважаемый(ая) {{ user.full_name or user.username }}, напоминаем об оплате задолженности за коммунальные услуги.</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Отправить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

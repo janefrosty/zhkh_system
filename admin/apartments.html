@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Квартиры{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="fas fa-door-closed me-2"></i>Квартиры</h1>
+
+<div class="card">
+    <div class="card-body">
+        {% if apartments %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Номер</th>
+                        <th>Дом</th>
+                        <th>Площадь (м²)</th>
+                        <th>Комнат</th>
+                        <th>Этаж</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apartment in apartments %}
+                    <tr>
+                        <td>{{ apartment.number }}</td>
+                        <td>{{ apartment.building.address }}</td>
+                        <td>{{ apartment.area }}</td>
+                        <td>{{ apartment.rooms }}</td>
+                        <td>{{ apartment.floor or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-door-closed fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Квартиры не найдены</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

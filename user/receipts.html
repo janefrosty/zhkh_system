@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Мои квитанции{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-circle me-2"></i>Меню</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.my_payments') }}">
+                        <i class="fas fa-credit-card"></i> Мои платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('user.my_receipts') }}">
+                        <i class="fas fa-file-invoice-dollar"></i> Мои квитанции
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.my_houses') }}">
+                        <i class="fas fa-home"></i> Мои дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.profile') }}">
+                        <i class="fas fa-user-cog"></i> Профиль
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Мои квитанции</h1>
+            <div class="btn-group">
+                <a href="#" class="btn btn-outline-primary">Все</a>
+                <a href="#" class="btn btn-outline-warning">Ожидают оплаты</a>
+                <a href="#" class="btn btn-outline-success">Оплаченные</a>
+            </div>
+        </div>
+        
+        {% if receipts %}
+            <div class="row">
+                {% for receipt in receipts %}
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Квитанция #{{ receipt.id }}</h6>
+                            <span class="badge bg-{% if receipt.is_paid %}success{% elif receipt.is_overdue %}danger{% else %}warning{% endif %}">
+                                {% if receipt.is_paid %}Оплачено{% elif receipt.is_overdue %}Просрочено{% else %}Ожидает оплаты{% endif %}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ receipt.amount }} ₽</h5>
+                            <p class="card-text">{{ receipt.description }}</p>
+                            
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Срок оплаты:</span>
+                                    <strong>{{ receipt.due_date.strftime('%d.%m.%Y') }}</strong>
+                                </li>
+                                {% if receipt.house %}
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Адрес:</span>
+                                    <strong>{{ receipt.house.address }}</strong>
+                                </li>
+                                {% endif %}
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Дата создания:</span>
+                                    <strong>{{ receipt.created_at.strftime('%d.%m.%Y') }}</strong>
+                                </li>
+                            </ul>
+                            
+                            <div class="d-grid gap-2">
+                                {% if not receipt.is_paid %}
+                                <form method="POST" action="{{ url_for('user.pay_receipt', receipt_id=receipt.id) }}">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="fas fa-credit-card me-2"></i>Оплатить
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button class="btn btn-outline-success w-100" disabled>
+                                    <i class="fas fa-check me-2"></i>Оплачено {{ receipt.paid_at.strftime('%d.%m.%Y') }}
+                                </button>
+                                {% endif %}
+                                <a href="#" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-download me-2"></i>Скачать PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card dashboard-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-file-invoice-dollar fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Квитанции не найдены</h4>
+                    <p class="text-muted mb-4">У вас пока нет квитанций</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

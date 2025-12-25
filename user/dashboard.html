@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Сайдбар -->
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-circle me-2"></i>Меню</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('user.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.my_payments') }}">
+                        <i class="fas fa-credit-card"></i> Мои платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.my_houses') }}">
+                        <i class="fas fa-home"></i> Мои дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.profile') }}">
+                        <i class="fas fa-user-cog"></i> Профиль
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="mt-4">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-info-circle me-2"></i>Информация</h6>
+                        <p class="small mb-0">Техподдержка: support@zhkh.ru</p>
+                        <p class="small mb-0">Телефон: 8-800-555-35-35</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Основной контент -->
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Личный кабинет</h1>
+            <span class="badge bg-primary">Пользователь</span>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #4361ee, #3a0ca3);">
+                    <div class="stat-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.my_payments }}</div>
+                    <div class="stat-label">Всего платежей</div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #f72585, #b5179e);">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.pending_payments }}</div>
+                    <div class="stat-label">Ожидают оплаты</div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #4cc9f0, #4895ef);">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.completed_payments }}</div>
+                    <div class="stat-label">Завершено</div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #7209b7, #560bad);">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.total_debt|round(2) }} ₽</div>
+                    <div class="stat-label">Общая задолженность</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Последние платежи -->
+        <div class="card dashboard-card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Последние платежи</h5>
+                <a href="{{ url_for('user.my_payments') }}" class="btn btn-sm btn-primary">Все платежи</a>
+            </div>
+            <div class="card-body">
+                {% if recent_payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Сумма</th>
+                                    <th>Статус</th>
+                                    <th>Описание</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in recent_payments %}
+                                <tr>
+                                    <td>{{ payment.date.strftime('%d.%m.%Y') }}</td>
+                                    <td>{{ payment.amount }} ₽</td>
+                                    <td>
+                                        <span class="badge bg-{% if payment.status == 'completed' %}success{% elif payment.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                            {{ payment.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ payment.description or 'Без описания' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Платежи не найдены</p>
+                        <a href="#" class="btn btn-primary">Создать первый платеж</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Быстрые действия -->
+        <div class="row mt-4">
+            <div class="col-md-6 mb-3">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-invoice-dollar fa-3x text-primary mb-3"></i>
+                        <h5>Сформировать квитанцию</h5>
+                        <p class="text-muted small">Создайте квитанцию на оплату ЖКУ</p>
+                        <a href="#" class="btn btn-outline-primary">Создать</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-question-circle fa-3x text-info mb-3"></i>
+                        <h5>Задать вопрос</h5>
+                        <p class="text-muted small">Обратитесь в службу поддержки</p>
+                        <a href="#" class="btn btn-outline-info">Написать</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
