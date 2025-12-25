@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Панель оператора{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-cog me-2"></i>Оператор</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('operator.operator_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.overdue_payments') }}">
+                        <i class="fas fa-exclamation-triangle"></i> Просрочки
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.tasks') }}">
+                        <i class="fas fa-tasks"></i> Задачи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('operator.operator_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Панель оператора</h1>
+            <span class="badge bg-warning">Оператор</span>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #4361ee, #3a0ca3);">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.total_users }}</div>
+                    <div class="stat-label">Пользователей</div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #f72585, #b5179e);">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.overdue_payments }}</div>
+                    <div class="stat-label">Просрочек</div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #7209b7, #560bad);">
+                    <div class="stat-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.pending_tasks }}</div>
+                    <div class="stat-label">Активных задач</div>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card" style="background: linear-gradient(135deg, #4cc9f0, #4895ef);">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-number">{{ stats.completed_tasks }}</div>
+                    <div class="stat-label">Выполнено</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card dashboard-card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Пользователи с просрочками</h5>
+                        <a href="{{ url_for('operator.overdue_payments') }}" class="btn btn-sm btn-outline-danger">Все просрочки</a>
+                    </div>
+                    <div class="card-body">
+                        {% if overdue_users %}
+                            <div class="list-group list-group-flush">
+                                {% for user in overdue_users %}
+                                <a href="{{ url_for('operator.user_details', user_id=user.id) }}" class="list-group-item list-group-item-action border-0 px-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">{{ user.username }}</h6>
+                                            <small class="text-muted">{{ user.email }}</small>
+                                        </div>
+                                        <span class="badge bg-danger">Просрочка</span>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">Просрочки не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card dashboard-card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-tasks me-2 text-primary"></i>Последние задачи</h5>
+                        <a href="{{ url_for('operator.tasks') }}" class="btn btn-sm btn-outline-primary">Все задачи</a>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_tasks %}
+                            <div class="list-group list-group-flush">
+                                {% for task in recent_tasks %}
+                                <div class="list-group-item border-0 px-0">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="mb-0">{{ task.title }}</h6>
+                                        <span class="badge bg-{% if task.priority == 'high' %}danger{% elif task.priority == 'medium' %}warning{% else %}info{% endif %}">
+                                            {{ task.priority }}
+                                        </span>
+                                    </div>
+                                    <p class="small text-muted mb-2">{{ task.description|truncate(60) }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">{{ task.created_at.strftime('%d.%m.%Y') }}</small>
+                                        <span class="badge bg-{% if task.status == 'completed' %}success{% else %}warning{% endif %}">
+                                            {{ task.status }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">Задачи не найдены</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card dashboard-card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('operator.create_task') }}" class="btn btn-outline-primary w-100 py-3">
+                            <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
+                            Новая задача
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('operator.operator_users') }}" class="btn btn-outline-success w-100 py-3">
+                            <i class="fas fa-user-check fa-2x mb-2"></i><br>
+                            Позвонить клиенту
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('operator.overdue_payments') }}" class="btn btn-outline-danger w-100 py-3">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                            Проверить просрочки
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('operator.operator_payments') }}" class="btn btn-outline-info w-100 py-3">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                            Анализ платежей
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

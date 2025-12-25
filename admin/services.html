@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Услуги{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="fas fa-concierge-bell me-2"></i>Услуги</h1>
+    <a href="{{ url_for('admin.create_service') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Добавить услугу
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if services %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Ед. изм.</th>
+                        <th>Тариф</th>
+                        <th>Тип учета</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    <tr>
+                        <td><strong>{{ service.name }}</strong></td>
+                        <td>{{ service.description or '-' }}</td>
+                        <td>{{ service.unit or '-' }}</td>
+                        <td>{{ service.rate }} ₽</td>
+                        <td>
+                            {% if service.is_counter %}
+                            <span class="badge bg-info">По счетчику</span>
+                            {% else %}
+                            <span class="badge bg-warning">По нормативу</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if service.is_active %}
+                            <span class="badge bg-success">Активна</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Неактивна</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-concierge-bell fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Услуги не найдены</p>
+            <a href="{{ url_for('admin.create_service') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Добавить первую услугу
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

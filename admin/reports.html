@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Отчеты - Администратор{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-cogs me-2"></i>Администрирование</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Панель управления
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin.admin_reports') }}">
+                        <i class="fas fa-file-alt"></i> Отчеты
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_houses') }}">
+                        <i class="fas fa-home"></i> Дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_receipts') }}">
+                        <i class="fas fa-file-invoice-dollar"></i> Квитанции
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.settings') }}">
+                        <i class="fas fa-cog"></i> Настройки
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Управление отчетами</h1>
+            <a href="{{ url_for('admin.create_report') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Создать отчет
+            </a>
+        </div>
+        
+        <!-- Список отчетов -->
+        {% if reports %}
+            <div class="row">
+                {% for report in reports %}
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">{{ report.title }}</h5>
+                                <small class="text-muted">{{ report.created_at.strftime('%d.%m.%Y') }}</small>
+                            </div>
+                            <span class="badge bg-{% if report.report_type == 'financial' %}success{% elif report.report_type == 'technical' %}info{% else %}warning{% endif %}">
+                                {{ report.report_type }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">{{ report.content|truncate(150) }}</p>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted">Автор:</small>
+                                <div class="d-flex align-items-center mt-1">
+                                    <i class="fas fa-user-circle me-2 text-primary"></i>
+                                    <strong>{{ report.author.username }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                        data-bs-target="#viewReportModal{{ report.id }}">
+                                    <i class="fas fa-eye me-2"></i>Просмотр
+                                </button>
+                                <form method="POST" action="{{ url_for('admin.delete_report', report_id=report.id) }}" 
+                                      onsubmit="return confirm('Удалить отчет?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash me-2"></i>Удалить
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card dashboard-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Отчеты не найдены</h4>
+                    <p class="text-muted mb-4">Создайте свой первый отчет</p>
+                    <a href="{{ url_for('admin.create_report') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Создать отчет
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальные окна для просмотра отчетов -->
+{% for report in reports %}
+<div class="modal fade" id="viewReportModal{{ report.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ report.title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <span class="badge bg-{% if report.report_type == 'financial' %}success{% elif report.report_type == 'technical' %}info{% else %}warning{% endif %}">
+                        {{ report.report_type }}
+                    </span>
+                    <span class="text-muted ms-2">
+                        <i class="fas fa-user me-1"></i>{{ report.author.username }}
+                    </span>
+                    <span class="text-muted ms-2">
+                        <i class="fas fa-calendar me-1"></i>{{ report.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </span>
+                </div>
+                
+                <div class="report-content">
+                    {{ report.content|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Печать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

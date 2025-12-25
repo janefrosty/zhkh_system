@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Мои дома{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-user-circle me-2"></i>Меню</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Обзор
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.my_payments') }}">
+                        <i class="fas fa-credit-card"></i> Мои платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('user.my_houses') }}">
+                        <i class="fas fa-home"></i> Мои дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.profile') }}">
+                        <i class="fas fa-user-cog"></i> Профиль
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <h1 class="h3 mb-4">Мои дома</h1>
+        
+        {% if houses %}
+            <div class="row">
+                {% for house in houses %}
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title mb-0">{{ house.address }}</h5>
+                                <span class="badge bg-primary">{{ house.area }} м²</span>
+                            </div>
+                            
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Общая площадь:</span>
+                                    <strong>{{ house.area }} м²</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Текущая задолженность:</span>
+                                    <strong class="text-danger">{{ house.debt }} ₽</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Этаж:</span>
+                                    <strong>5/9</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0">
+                                    <span>Количество комнат:</span>
+                                    <strong>3</strong>
+                                </li>
+                            </ul>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="#" class="btn btn-outline-primary">Посмотреть квитанции</a>
+                                <a href="#" class="btn btn-outline-info">История платежей</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card dashboard-card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-home fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">Дома не найдены</h4>
+                    <p class="text-muted mb-4">У вас пока нет привязанных домов</p>
+                    <a href="#" class="btn btn-primary">Добавить дом</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

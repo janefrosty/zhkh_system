@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - Администратор{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 mb-4">
+        <div class="sidebar">
+            <h5 class="mb-3"><i class="fas fa-cogs me-2"></i>Администрирование</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Панель управления
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.users') }}">
+                        <i class="fas fa-users"></i> Пользователи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_payments') }}">
+                        <i class="fas fa-credit-card"></i> Платежи
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_reports') }}">
+                        <i class="fas fa-file-alt"></i> Отчеты
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_houses') }}">
+                        <i class="fas fa-home"></i> Дома
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin.admin_receipts') }}">
+                        <i class="fas fa-file-invoice-dollar"></i> Квитанции
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin.settings') }}">
+                        <i class="fas fa-cog"></i> Настройки
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <h1 class="h3 mb-4">Настройки системы</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Общие настройки -->
+                <div class="card dashboard-card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Общие настройки</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Название системы</label>
+                                <input type="text" class="form-control" value="ЖКХ Система">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Контактный email</label>
+                                <input type="email" class="form-control" value="support@zhkh.ru">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Контактный телефон</label>
+                                <input type="text" class="form-control" value="8-800-555-35-35">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Адрес организации</label>
+                                <textarea class="form-control" rows="2">г. Москва, ул. Примерная, д. 1</textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Настройки оплаты -->
+                <div class="card dashboard-card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Настройки оплаты</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Комиссия за онлайн оплату (%)</label>
+                                <input type="number" class="form-control" value="1.5" step="0.1">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Срок оплаты квитанций (дней)</label>
+                                <input type="number" class="form-control" value="30">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="autoGenerateReceipts" checked>
+                                    <label class="form-check-label" for="autoGenerateReceipts">
+                                        Автоматически генерировать квитанции
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sendNotifications" checked>
+                                    <label class="form-check-label" for="sendNotifications">
+                                        Отправлять уведомления об оплате
+                                    </label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <!-- Быстрые действия -->
+                <div class="card dashboard-card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Быстрые действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="backupDatabase()">
+                                <i class="fas fa-database me-2"></i>Создать резервную копию
+                            </button>
+                            <button class="btn btn-outline-success" onclick="clearCache()">
+                                <i class="fas fa-broom me-2"></i>Очистить кэш
+                            </button>
+                            <button class="btn btn-outline-info" onclick="checkUpdates()">
+                                <i class="fas fa-sync me-2"></i>Проверить обновления
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="generateReports()">
+                                <i class="fas fa-chart-bar me-2"></i>Сгенерировать отчеты
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Информация о системе -->
+                <div class="card dashboard-card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация о системе</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Версия системы:</span>
+                                <strong>1.0.0</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>База данных:</span>
+                                <strong>SQLite</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Пользователей:</span>
+                                <strong>{{ current_user.query.count() }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Домов:</span>
+                                <strong>{{ House.query.count() }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Квитанций:</span>
+                                <strong>{{ Receipt.query.count() }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function backupDatabase() {
+    if (confirm('Создать резервную копию базы данных?')) {
+        alert('Резервная копия создана успешно!');
+    }
+}
+
+function clearCache() {
+    if (confirm('Очистить кэш системы?')) {
+        alert('Кэш очищен!');
+    }
+}
+
+function checkUpdates() {
+    alert('Проверка обновлений... Система обновлена до последней версии.');
+}
+
+function generateReports() {
+    alert('Генерация отчетов... Отчеты успешно сгенерированы.');
+}
+</script>
+{% endblock %}

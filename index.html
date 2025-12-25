@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2 text-center">
+        <h1 class="mb-4">Система управления ЖКХ</h1>
+        
+        {% if not current_user.is_authenticated %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Добро пожаловать!</h5>
+                    <p class="card-text">Для доступа к системе необходимо войти в систему.</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-primary">Войти в систему</a>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <h5>Администратор</h5>
+                    <p>Логин: admin</p>
+                    <p>Пароль: admin123</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Оператор</h5>
+                    <p>Логин: operator</p>
+                    <p>Пароль: operator123</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Пользователь</h5>
+                    <p>Логин: user</p>
+                    <p>Пароль: user123</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Добро пожаловать, {{ current_user.username }}!</h5>
+                    <p class="card-text">Вы вошли в систему как 
+                        {% if current_user.is_admin %}
+                            <span class="badge bg-danger">Администратор</span>
+                        {% elif current_user.is_operator %}
+                            <span class="badge bg-warning">Оператор</span>
+                        {% else %}
+                            <span class="badge bg-info">Пользователь</span>
+                        {% endif %}
+                    </p>
+                    
+                    {% if current_user.is_admin %}
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">Перейти в админ-панель</a>
+                    {% elif current_user.is_operator %}
+                        <a href="{{ url_for('operator.dashboard') }}" class="btn btn-primary">Перейти в панель оператора</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

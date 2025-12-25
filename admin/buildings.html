@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Дома{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="fas fa-home me-2"></i>Дома</h1>
+
+<div class="card">
+    <div class="card-body">
+        {% if buildings %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Адрес</th>
+                        <th>Этажи</th>
+                        <th>Квартир</th>
+                        <th>Год постройки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for building in buildings %}
+                    <tr>
+                        <td>{{ building.address }}</td>
+                        <td>{{ building.floors }}</td>
+                        <td>{{ building.apartments_count }}</td>
+                        <td>{{ building.year_built or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-home fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Дома не найдены</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Создание услуги{% endblock %}
+{% block page_title %}Создание новой услуги{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle me-2"></i>Новая услуга ЖКХ
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.create_service') }}">
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Название услуги *</label>
+                                <input type="text" name="name" class="form-control" required 
+                                       placeholder="Например: Холодное водоснабжение">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Статус</label>
+                                <select name="is_active" class="form-select">
+                                    <option value="1" selected>Активна</option>
+                                    <option value="0">Неактивна</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Описание</label>
+                                <textarea name="description" class="form-control" rows="3" 
+                                          placeholder="Описание услуги..."></textarea>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Единица измерения</label>
+                                <input type="text" name="unit" class="form-control" 
+                                       placeholder="Например: м³, кВт·ч, м²">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Тариф (₽ за единицу) *</label>
+                                <input type="number" step="0.01" name="rate" class="form-control" 
+                                       required placeholder="0.00" value="0.00">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Тип учета</label>
+                                <select name="is_counter" class="form-select">
+                                    <option value="0">По нормативу</option>
+                                    <option value="1">По счетчику</option>
+                                </select>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    По нормативу: начисление по площади<br>
+                                    По счетчику: начисление по показаниям
+                                </small>
+                            </div>
+                            
+                            <div class="col-12 mt-4">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{{ url_for('admin.services') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Назад к списку
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Создать услугу
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
